@@ -1,0 +1,20 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.3.3">
+
+  <ItemGroup>
+    <ProjectReference Include="..\AiIssueTracker.Api\AiIssueTracker.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.NodeJs" Version="9.5.2" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.3.3" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>de15fbb3-33ac-4ee1-9c7e-1f2929428b92</UserSecretsId>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/backend/" />
+  <Folder Name="/backend/src/">
+    <Project Path="backend/src/AiIssueTracker.Api/AiIssueTracker.Api.csproj" />
+    <Project Path="backend/src/AiIssueTracker.AppHost/AiIssueTracker.AppHost.csproj" />
+    <Project Path="backend/src/AiIssueTracker.ServiceDefaults/AiIssueTracker.ServiceDefaults.csproj" />
+  </Folder>
+  <Folder Name="/backend/tests/">
+    <Project Path="backend/tests/AiIssueTracker.Api.Tests/AiIssueTracker.Api.Tests.csproj" />
+  </Folder>
+</Solution>

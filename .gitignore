@@ -55,3 +55,17 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# IDE
+.vs/
+.idea/
+*.user
+*.suo
+*.userprefs
+
+# Claude Code — local-only
+.claude/settings.local.json
+.claude/worktrees/
+
+# Aspire — locally generated manifests
+*.aspire-manifest.json
