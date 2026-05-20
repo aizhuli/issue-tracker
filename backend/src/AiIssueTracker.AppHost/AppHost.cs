@@ -7,16 +7,30 @@ var postgres = builder
 
 var issueTrackerDb = postgres.AddDatabase("issuetracker");
 
+var bffSharedSecret = builder.AddParameter(
+    "bff-shared-secret",
+    "dev-bff-secret-change-me-please-32chars-min",
+    secret: true);
+
+var sessionCookiePassword = builder.AddParameter(
+    "session-cookie-password",
+    "dev-session-cookie-password-must-be-at-least-32-chars-long-for-iron-session",
+    secret: true);
+
 var api = builder
     .AddProject<Projects.AiIssueTracker_Api>("api")
     .WithReference(issueTrackerDb)
-    .WaitFor(issueTrackerDb);
+    .WaitFor(issueTrackerDb)
+    .WithEnvironment("BffAuth__SharedSecret", bffSharedSecret);
 
 builder
     .AddNpmApp("frontend", "../../../frontend", "dev")
     .WithReference(api)
     .WaitFor(api)
     .WithHttpEndpoint(env: "PORT")
-    .WithExternalHttpEndpoints();
+    .WithExternalHttpEndpoints()
+    .WithEnvironment("BFF_SHARED_SECRET", bffSharedSecret)
+    .WithEnvironment("SESSION_COOKIE_PASSWORD", sessionCookiePassword)
+    .WithEnvironment("API_URL", api.GetEndpoint("http"));
 
 builder.Build().Run();
