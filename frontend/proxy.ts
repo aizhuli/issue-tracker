@@ -7,9 +7,9 @@ const PUBLIC_PATHS = ["/login", "/register"];
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
-    return NextResponse.next();
-  }
+  const isAuthPage = PUBLIC_PATHS.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`),
+  );
 
   const sessionPassword = process.env.SESSION_COOKIE_PASSWORD;
   if (!sessionPassword || sessionPassword.length < 32) {
@@ -21,6 +21,15 @@ export async function proxy(request: NextRequest) {
     cookieName: "ait_session",
     password: sessionPassword,
   });
+
+  // Redirect authenticated users away from /login and /register
+  if (isAuthPage && session.user) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  if (isAuthPage) {
+    return NextResponse.next();
+  }
 
   if (!session.user) {
     const loginUrl = new URL("/login", request.url);

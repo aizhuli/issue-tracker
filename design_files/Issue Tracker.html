@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=1280"/>
+<title>AI Issue Tracker — Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="data.js"></script>
+<script type="text/babel" src="components.jsx"></script>
+<script type="text/babel" src="chrome.jsx"></script>
+<script type="text/babel" src="board.jsx"></script>
+<script type="text/babel" src="drawer.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useMemo, useEffect } = React;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "accent": "#C9A8E5",
+  "density": "regular",
+  "showAIBanner": true,
+  "view": "board"
+}/*EDITMODE-END*/;
+
+const ACCENTS = {
+  '#B6DF7B': { strong: '#9BCB57', ink: '#1B3A1B', soft: '#DCE9CC', softInk: '#3D5424' }, // lime
+  '#E8A562': { strong: '#D88A3F', ink: '#4A2A0F', soft: '#F4DDC0', softInk: '#6A3D17' }, // amber
+  '#A6C8E8': { strong: '#7BABDB', ink: '#152F4D', soft: '#D5E4F3', softInk: '#2C4A6B' }, // sky
+  '#C9A8E5': { strong: '#A983D0', ink: '#321E4D', soft: '#E5D7F1', softInk: '#4A2F6B' }, // violet
+};
+
+function App() {
+  const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+  const [issues, setIssues] = useState(window.MOCK_DATA.issues);
+  const [activeProject, setActiveProject] = useState('p1');
+  const [selectedId, setSelectedId] = useState(null);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [query, setQuery] = useState('');
+
+  // Apply accent
+  useEffect(() => {
+    const a = ACCENTS[t.accent] || ACCENTS['#B6DF7B'];
+    const r = document.documentElement;
+    r.style.setProperty('--accent-1', t.accent);
+    r.style.setProperty('--accent-1-strong', a.strong);
+    r.style.setProperty('--accent-1-ink', a.ink);
+    r.style.setProperty('--accent-2', a.soft);
+    r.style.setProperty('--accent-2-ink', a.softInk);
+  }, [t.accent]);
+
+  // Density
+  useEffect(() => {
+    document.body.classList.toggle('density-compact', t.density === 'compact');
+  }, [t.density]);
+
+  // ⌘K / Ctrl+K opens AI
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.key === 'k' || e.key === 'K') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setAiOpen(o => !o);
+      }
+      if ((e.key === 'c') && !e.metaKey && !e.ctrlKey && document.activeElement === document.body) {
+        setAiOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const project = window.MOCK_DATA.projects.find(p => p.id === activeProject);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return issues;
+    return issues.filter(i =>
+      i.title.toLowerCase().includes(q) ||
+      i.id.toLowerCase().includes(q) ||
+      i.labels.some(l => l.toLowerCase().includes(q))
+    );
+  }, [issues, query]);
+
+  const move = (id, status) => {
+    setIssues(prev => prev.map(i => i.id === id ? { ...i, status } : i));
+  };
+
+  const createIssue = (parsed) => {
+    const nextNum = Math.max(...issues.map(i => parseInt(i.id.split('-')[1]))) + 1;
+    const newIssue = {
+      id: 'WEB-' + nextNum,
+      title: parsed.title || 'Untitled issue',
+      desc: '',
+      status: parsed.status,
+      priority: parsed.priority,
+      points: parsed.points,
+      assignee: parsed.assignee,
+      labels: parsed.labels,
+      created: 'Just now',
+      updated: 'now',
+      comments: 0,
+    };
+    setIssues(prev => [newIssue, ...prev]);
+  };
+
+  const selected = issues.find(i => i.id === selectedId);
+
+  return (
+    <div className="app">
+      <Sidebar
+        activeProject={activeProject}
+        onProject={setActiveProject}
+        activeView={t.view}
+        onView={(v) => setTweak('view', v)}
+        density={t.density}
+      />
+      <main className="main">
+        <TopBar
+          project={project}
+          view={t.view}
+          query={query}
+          onQuery={setQuery}
+          onView={(v) => setTweak('view', v)}
+          density={t.density}
+          onDensity={(d) => setTweak('density', d)}
+          onOpenAI={() => setAiOpen(true)}
+        />
+        <ViewSwitch
+          view={t.view}
+          onView={(v) => setTweak('view', v)}
+          count={filtered.length}
+          query={query}
+          onQuery={setQuery}
+        />
+        {t.view === 'list' ? (
+          <ListView
+            issues={filtered}
+            onCardClick={(id) => setSelectedId(id)}
+          />
+        ) : t.view === 'backlog' ? (
+          <ListView
+            issues={filtered.filter(i => i.status === 'backlog' || i.status === 'todo')}
+            onCardClick={(id) => setSelectedId(id)}
+          />
+        ) : (
+          <KanbanBoard
+            issues={filtered}
+            onMove={move}
+            onCardClick={(id) => setSelectedId(id)}
+            density={t.density}
+          />
+        )}
+      </main>
+
+      {selected && (
+        <IssueDrawer
+          issue={selected}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
+
+      <AICommand
+        open={aiOpen}
+        onClose={() => setAiOpen(false)}
+        onCreate={createIssue}
+      />
+
+      <TweaksPanel>
+        <TweakSection label="Accent" />
+        <TweakColor
+          label="Accent color"
+          value={t.accent}
+          options={['#B6DF7B', '#E8A562', '#A6C8E8', '#C9A8E5']}
+          onChange={(v) => setTweak('accent', v)}
+        />
+        <TweakSection label="Layout" />
+        <TweakRadio
+          label="Density"
+          value={t.density}
+          options={['compact','regular']}
+          onChange={(v) => setTweak('density', v)}
+        />
+        <TweakRadio
+          label="View"
+          value={t.view}
+          options={['board','list']}
+          onChange={(v) => setTweak('view', v)}
+        />
+        <TweakSection label="Actions" />
+        <TweakButton onClick={() => setAiOpen(true)}>Open AI quick-create (⌘K)</TweakButton>
+        <TweakButton onClick={() => setSelectedId('WEB-136')}>Open sample issue</TweakButton>
+      </TweaksPanel>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
