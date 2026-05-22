@@ -22,8 +22,8 @@ The product is meant for demo/teaching. Optimize for clarity and a clean vertica
 | Pagination       | AIP-158 token pagination (`PageResponse<T>`)                  |
 | Error format     | RFC 7807 ProblemDetails with `errorCode` + `traceId`          |
 | Frontend         | Next.js 16 (App Router, TypeScript) acting as a BFF           |
-| BFF auth         | HTTP-only encrypted session cookie (iron-session / next-auth) |
-| API auth         | JWT bearer token, issued by ASP.NET, attached by the BFF      |
+| BFF auth         | HTTP-only encrypted session cookie (iron-session)             |
+| API auth         | Shared secret header (`X-Bff-Secret`) + `X-User-Id` (Base32) |
 | Testing (BE)     | xUnit + Testcontainers (PostgreSQL) via harness pattern       |
 | Testing (FE)     | Vitest + React Testing Library; Playwright for E2E (optional) |
 | LLM SDK          | `Microsoft.Extensions.AI` over the `OpenAI` provider          |
@@ -92,7 +92,7 @@ backend/src/AiIssueTracker.Api/
 │   ├── Comments/              # CreateComment, UpdateComment, DeleteComment
 │   └── Ai/                    # TriageIssue, ReviewPullRequest
 ├── Common/
-│   ├── Auth/                  # JwtIssuer, password hashing, claims extractors
+│   ├── Auth/                  # BffAuthHandler, ICurrentUser, password hashing, claims extractors
 │   ├── Exceptions/            # DomainException + GlobalExceptionHandler
 │   ├── Http/                  # IEndpoint contract + extension methods
 │   ├── Identity/              # IdFactory (IdGen wrapper) + Base32Encoder
@@ -152,18 +152,20 @@ frontend/
 Login/password only — no OAuth.
 
 ```text
-Browser ──cookie (iron-session, HTTP-only, encrypted)──→ Next.js BFF
-                                                            │
-                                                            │ Authorization: Bearer <jwt>
-                                                            ▼
-                                                        ASP.NET API
+Browser ──cookie (ait_session, HTTP-only, SameSite=lax, encrypted)──→ Next.js BFF
+                                                                           │
+                                                                           │ X-Bff-Secret: <shared secret>
+                                                                           │ X-User-Id: <Base32 user id>  (when session exists)
+                                                                           ▼
+                                                                       ASP.NET API
 ```
 
-- Backend issues a short-lived access token (e.g. 15 min) + refresh token on `POST /api/auth/login`.
-- BFF stores both inside the encrypted session cookie.
-- BFF refreshes silently when the access token is near expiry (server-side, never exposes tokens to the browser).
-- `JwtBearer` is the only authentication scheme on the API.
-- `HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)` carries the user `long` ID (Base32-decoded back into a long on read).
+- The API is only reachable through the BFF — never directly from the browser. No JWT, no refresh token, no server-side session store.
+- The BFF cookie (`ait_session`) stores `{ user: { userId, email, name } }` encrypted via iron-session.
+- The BFF attaches `X-Bff-Secret` on every API call. When a session exists it also attaches `X-User-Id` (Base32-encoded user id).
+- The API runs a single `BffAuth` authentication scheme: validates the shared secret in constant time, decodes `X-User-Id` into a `ClaimTypes.NameIdentifier` claim (raw `long`), and also exposes the encoded id as the `encoded_id` claim.
+- `BffOnly` policy: valid `X-Bff-Secret` required. `RequireUser` policy: valid `X-Bff-Secret` + `NameIdentifier` claim required.
+- `ICurrentUser.UserId` is the only way handlers access the calling user's id.
 
 Passwords are hashed with ASP.NET's `PasswordHasher<User>` (PBKDF2). No `Microsoft.AspNetCore.Identity` machinery — the user model lives in `Data/Entities/User.cs`.
 
@@ -308,7 +310,7 @@ cd frontend; npm run lint
 The recommended slice-by-slice order, each shippable on its own:
 
 1. Aspire + Postgres + API skeleton + `/health`.
-2. `Users` (register, login, JWT issuance, `me`).
+2. `Users` (register, login, `me`) — `BffAuth` scheme, no JWT.
 3. Next.js BFF auth wiring (iron-session cookie, login form).
 4. `Projects` (create, get, list) and `Labels` (create, list, delete).
 5. `Issues` quick-create + get + list (with token pagination + filters).
