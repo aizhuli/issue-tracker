@@ -199,47 +199,34 @@ GitHub access uses an unauthenticated client for public repos in MVP. Token-base
 
 ### Code
 
-- **One feature = one file** in `Features/{Domain}/{Feature}.cs`. Nested `Endpoint`, `Request`, `Response`, `RequestValidator`, `RequestHandler`.
-- **Always go through MediatR** — never call a handler directly. The validation pipeline runs on `Send`.
-- **Thin endpoints** — extract claims, build the `Request`, dispatch, map to `IResult`. No business logic.
-- **DTOs only over the wire** — never serialize EF entities.
-- **Options pattern** for configuration. Each domain has `Features/{Domain}/Options/{Domain}Options.cs`. Never inject `IConfiguration` into handlers.
-- **Shared infra lives in `Common/{Concern}/`** with a specific concern name. No generic `Helpers/` or `Utilities/` folders.
+Follow the `vertical-slice-architecture` skill — it defines all layout rules, patterns, and anti-patterns.
 
 ### IDs
 
-Always follow the local `id-generation` skill:
-
-- DB primary and foreign keys: raw `long` from `IdFactory.Create()` (IdGen).
-- Public API responses: Crockford-Base32 encoded via `IdEncoding.Encode(long)`.
-- URLs: prefer slug for content entities (`Project.Slug`); encoded ID for everything else.
+Follow the `id-generation` skill.
 
 ### Validation & errors
 
-Always follow the local `validation` and `error-handling` skills.
+Follow the `validation` and `error-handling` skills.
 
-- Error codes follow `domain:entity:field:error_type` (validation) and `domain:entity:operation:error_type` (errors). Examples for this project:
-  - `issues:issue:title:required`
-  - `issues:issue:status:invalid_transition` (if we ever decide to enforce a transition rule)
-  - `projects:label:name:already_exists`
-  - `comments:comment:update:forbidden`
-  - `ai:pr_review:github:fetch_failed`
-- Backend → ProblemDetails with `errorCode` + `traceId`.
-- BFF → passthrough (don't reshape).
-- Frontend → typed `ApiError` mapped to toasts / form errors via Zod issue codes.
+Project-specific error code examples:
+- `issues:issue:title:required`
+- `issues:issue:status:invalid_transition`
+- `projects:label:name:already_exists`
+- `comments:comment:update:forbidden`
+- `ai:pr_review:github:fetch_failed`
 
 ### Pagination
 
-All list endpoints follow the local `token-pagination` skill — `pageToken`, `maxPageSize`, `PageResponse<T>`. Always pass every filter parameter into both `TryGetOffsetAndLimit` and `CreateNextPageToken`, in the same order. Always order by a stable, unique field (`OrderBy(x => x.Id)`).
+Follow the `token-pagination` skill for all list endpoints (`pageToken`, `maxPageSize`, `PageResponse<T>`).
 
 ### Testing
 
-Always follow the local `component-testing` skill.
+Follow the `component-testing` skill.
 
-- Backend tests: component-level via real HTTP + a Postgres Testcontainer + harnesses. Domain-specific xUnit collections (`IssuesTestsCollection`, `ProjectsTestsCollection`, `AiTestsCollection`, …).
-- Validator tests: nested `ValidatorTests` class inside the corresponding feature test file, using `FluentValidation.TestHelper`. Every feature with a `RequestValidator` requires these tests. Validation is **not** covered in component tests.
-- AI features: stub `IChatClient` in tests with a fake that returns canned tool calls / responses. Don't burn real LLM tokens in CI.
-- GitHub integration: stub the `GitHubClient` in tests; no live network calls.
+Project-specific stubs:
+- AI features: stub `IChatClient` with a fake returning canned tool calls / responses. No real LLM tokens in CI.
+- GitHub integration: stub `GitHubClient`. No live network calls in tests.
 
 ---
 
