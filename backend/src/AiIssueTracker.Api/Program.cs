@@ -4,6 +4,7 @@ using AiIssueTracker.Api.Common.Auth;
 using AiIssueTracker.Api.Common.Exceptions;
 using AiIssueTracker.Api.Common.Http;
 using AiIssueTracker.Api.Common.Identity;
+using AiIssueTracker.Api.Common.OpenApi;
 using AiIssueTracker.Api.Common.Validation;
 using AiIssueTracker.Api.Data;
 using AiIssueTracker.Api.Data.Entities;
@@ -12,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +57,11 @@ builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
+builder.Services.AddOpenApi("v1", options =>
+{
+    options.AddDocumentTransformer<BffSecuritySchemeTransformer>();
+});
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -67,6 +74,20 @@ app.UseExceptionHandler();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapOpenApi();
+app.MapScalarApiReference(options =>
+{
+    options.WithProxy(string.Empty);  // keep auth headers local — don't route through proxy.scalar.com
+
+    if (app.Environment.IsDevelopment())
+    {
+        options.AddApiKeyAuthentication("BffSecret", scheme =>
+        {
+            scheme.Value = "dev-bff-secret-change-me-please-32chars-min";
+        });
+    }
+});
 
 app.MapDefaultEndpoints();
 app.MapEndpoints();

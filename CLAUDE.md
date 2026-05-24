@@ -248,6 +248,7 @@ The `.claude/skills/` directory holds project-specific skills. **Always check wh
 | `implementation-planning`        | Turning a design into a checkbox plan for parallel agents |
 | `spec-maintenance`               | Keeping `docs/designs/*.md` honest as the code drifts     |
 | `ui-design`                      | Writing ANY frontend component or page                    |
+| `run-project`                    | Starting, building, or testing the project (Aspire, standalone, migrations) |
 
 The kit also ships skills under `dotnet-claude-kit:*` (build-fix, code-review, ef-core, opentelemetry, etc.). Use them when they fit; they don't replace the local skills above.
 
