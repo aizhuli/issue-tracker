@@ -8,8 +8,8 @@ public class Project
     public string? Description { get; set; }
     public long OwnerId { get; set; }
     public User Owner { get; set; } = null!;
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
 
     public ICollection<Issue> Issues { get; set; } = [];
     public ICollection<Label> Labels { get; set; } = [];
