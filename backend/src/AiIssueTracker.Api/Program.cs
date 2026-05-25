@@ -5,6 +5,7 @@ using AiIssueTracker.Api.Common.Exceptions;
 using AiIssueTracker.Api.Common.Http;
 using AiIssueTracker.Api.Common.Identity;
 using AiIssueTracker.Api.Common.OpenApi;
+using AiIssueTracker.Api.Common.Pagination;
 using AiIssueTracker.Api.Common.Validation;
 using AiIssueTracker.Api.Data;
 using AiIssueTracker.Api.Data.Entities;
@@ -46,6 +47,9 @@ builder.Services.AddAuthorization(options =>
 
 builder.Services.AddSingleton<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<IPasswordHashing, PasswordHashing>();
+
+builder.Services.Configure<PagingOptions>(builder.Configuration.GetSection(PagingOptions.SectionName));
+builder.Services.AddSingleton<LimitOffsetPaging>();
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
