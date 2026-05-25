@@ -260,3 +260,58 @@ body {
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
+
+/* ============================================================
+   Modal overlay + animation
+   ============================================================ */
+
+/* Full-viewport dimmed backdrop, fade-in 160ms */
+.ai-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(24, 52, 42, 0.45);
+  z-index: 100;
+  animation: scrim-in 160ms ease-out both;
+}
+
+@keyframes scrim-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Centered white card, max-width 480px */
+.ai-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 101;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.ai-modal > * {
+  pointer-events: auto;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  max-width: 480px;
+  width: calc(100% - 32px);
+  outline: none;
+}
+
+/* scale 0.96 → 1, opacity 0 → 1, 180ms ease-out */
+@keyframes ai-pop {
+  from {
+    transform: scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.ai-pop {
+  animation: ai-pop 180ms ease-out both;
+}
