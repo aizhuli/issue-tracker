@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { LoginForm } from "./LoginForm";
 import { RegisterForm } from "./RegisterForm";
@@ -78,7 +79,9 @@ export function AuthPanel({ activeTab }: AuthPanelProps) {
 
       {/* Form area — fixed height prevents panel resize when switching tabs */}
       <div style={{ minHeight: 300 }}>
-        {activeTab === "login" ? <LoginForm /> : <RegisterForm />}
+        <Suspense fallback={null}>
+          {activeTab === "login" ? <LoginForm /> : <RegisterForm />}
+        </Suspense>
       </div>
 
       {/* Footer */}

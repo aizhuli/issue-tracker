@@ -10,6 +10,7 @@ public class Project
     public User Owner { get; set; } = null!;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
+    public int NextIssueNumber { get; set; } = 1;
 
     public ICollection<Issue> Issues { get; set; } = [];
     public ICollection<Label> Labels { get; set; } = [];
