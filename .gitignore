@@ -69,3 +69,4 @@ nunit-*.xml
 
 # Aspire — locally generated manifests
 *.aspire-manifest.json
+/snapshots_ui

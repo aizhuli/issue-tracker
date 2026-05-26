@@ -91,10 +91,30 @@ export function Modal({ open, onClose, labelledBy, children }: ModalProps) {
   return ReactDOM.createPortal(
     <>
       {/* Scrim — full-viewport backdrop; clicking it closes the modal */}
-      <div className="ai-scrim" onClick={onClose} aria-hidden="true" />
+      <div
+        onClick={onClose}
+        aria-hidden="true"
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(24, 52, 42, 0.45)",
+          zIndex: 100,
+          animation: "scrim-in 160ms ease-out both",
+        }}
+      />
 
       {/* Centered wrapper — positions the card; stops clicks from reaching scrim */}
-      <div className="ai-modal">
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 101,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          pointerEvents: "none",
+        }}
+      >
         <div
           ref={cardRef}
           role="dialog"
@@ -102,6 +122,15 @@ export function Modal({ open, onClose, labelledBy, children }: ModalProps) {
           aria-labelledby={labelledBy}
           tabIndex={-1}
           onClick={(e) => e.stopPropagation()}
+          style={{
+            pointerEvents: "auto",
+            background: "var(--surface)",
+            borderRadius: "var(--radius-lg)",
+            boxShadow: "var(--shadow-lg)",
+            maxWidth: 480,
+            width: "calc(100% - 32px)",
+            outline: "none",
+          }}
         >
           {children}
         </div>
