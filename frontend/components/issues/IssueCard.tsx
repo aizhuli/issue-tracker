@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { Avatar } from "@/components/ui/Avatar";
@@ -45,6 +46,9 @@ interface IssueCardProps {
 export function IssueCard({ issue, onOpen, onStatusChange }: IssueCardProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const [menuPos, setMenuPos] = useState({ top: 0, right: 0 });
 
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: issue.id,
@@ -53,7 +57,11 @@ export function IssueCard({ issue, onOpen, onStatusChange }: IssueCardProps) {
   useEffect(() => {
     if (!dropdownOpen) return;
     function handleMouseDown(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        !dropdownRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
         setDropdownOpen(false);
       }
     }
@@ -82,61 +90,53 @@ export function IssueCard({ issue, onOpen, onStatusChange }: IssueCardProps) {
     >
       <div className="issue-card__top">
         <span className="issue-card__key">{issue.displayKey}</span>
-        <div ref={dropdownRef} style={{ position: "relative" }}>
+        <div ref={dropdownRef}>
           <button
-            className="issue-card__caret"
+            ref={triggerRef}
+            className={`status-pill-btn status-pill-btn--${issue.status}`}
             aria-label="Change status"
+            aria-expanded={dropdownOpen}
             onClick={(e) => {
               e.stopPropagation();
+              if (triggerRef.current) {
+                const rect = triggerRef.current.getBoundingClientRect();
+                setMenuPos({
+                  top: rect.bottom + 4,
+                  right: window.innerWidth - rect.right,
+                });
+              }
               setDropdownOpen((prev) => !prev);
             }}
           >
-            ▾
+            <span className={`status-dot--${issue.status}`} style={{ flexShrink: 0 }} />
+            {STATUS_LABELS[issue.status]}
+            <span style={{ fontSize: 8, opacity: 0.65, marginLeft: 1 }}>▾</span>
           </button>
-          {dropdownOpen && (
-            <div
-              style={{
-                position: "absolute",
-                top: "100%",
-                right: 0,
-                zIndex: 20,
-                background: "var(--surface-2, #1e1e2e)",
-                border: "1px solid var(--border, #2e2e3e)",
-                borderRadius: 6,
-                minWidth: 140,
-                boxShadow: "0 4px 16px rgba(0,0,0,0.25)",
-                overflow: "hidden",
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {STATUS_ORDER.map((s) => (
-                <button
-                  key={s}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    width: "100%",
-                    padding: "7px 12px",
-                    background: s === issue.status ? "var(--surface-3, #2a2a3a)" : "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "var(--text-primary, #e0e0ef)",
-                    fontSize: 13,
-                    textAlign: "left",
-                  }}
-                  onClick={() => {
-                    onStatusChange(s);
-                    setDropdownOpen(false);
-                  }}
-                >
-                  <span className={`status-dot--${s}`} />
-                  {STATUS_LABELS[s]}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
+
+        {dropdownOpen && createPortal(
+          <div
+            ref={menuRef}
+            className="status-menu"
+            style={{ position: "fixed", top: menuPos.top, right: menuPos.right, zIndex: 1000 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {STATUS_ORDER.map((s) => (
+              <button
+                key={s}
+                className={`status-menu-item${s === issue.status ? " is-active" : ""}`}
+                onClick={() => {
+                  onStatusChange(s);
+                  setDropdownOpen(false);
+                }}
+              >
+                <span className={`status-dot--${s}`} style={{ flexShrink: 0 }} />
+                {STATUS_LABELS[s]}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
       </div>
 
       <div className="issue-card__title">{issue.title}</div>

@@ -327,7 +327,7 @@ body {
   padding: 16px 20px;
   flex: 1;
   min-height: 0;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 .board-col {
@@ -549,6 +549,68 @@ body {
   border-radius: 50%;
   background: var(--st-done);
 }
+
+/* Status change dropdown menu (rendered via portal — position set inline) */
+.status-menu {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-width: 152px;
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  padding: 3px 0;
+}
+
+.status-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 12px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-1);
+  font-family: Manrope, sans-serif;
+  font-size: 12.5px;
+  font-weight: 500;
+  text-align: left;
+  transition: background 100ms;
+}
+.status-menu-item:hover,
+.status-menu-item:focus-visible {
+  background: var(--surface-2);
+  outline: none;
+}
+.status-menu-item.is-active {
+  background: var(--surface-3);
+  color: var(--ink-0);
+  font-weight: 600;
+}
+
+/* Status pill used as a clickable trigger on the issue card */
+.status-pill-btn {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px 3px 6px;
+  border-radius: 999px;
+  font-family: Manrope, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+  transition: filter 100ms;
+}
+.status-pill-btn:hover { filter: brightness(0.93); }
+
+.status-pill-btn--backlog  { background: color-mix(in srgb, var(--st-backlog)  16%, transparent); color: var(--st-backlog);  }
+.status-pill-btn--todo     { background: color-mix(in srgb, var(--st-todo)     16%, transparent); color: var(--st-todo);     }
+.status-pill-btn--in-progress { background: color-mix(in srgb, var(--st-progress) 16%, transparent); color: var(--st-progress); }
+.status-pill-btn--in-review   { background: color-mix(in srgb, var(--st-review)   16%, transparent); color: var(--st-review);   }
+.status-pill-btn--done     { background: color-mix(in srgb, var(--st-done)     16%, transparent); color: var(--st-done);     }
 
 /* ============================================================
    Priority icons
