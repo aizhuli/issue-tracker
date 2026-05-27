@@ -10,8 +10,11 @@ import { useParams } from "next/navigation";
 import {
   DndContext,
   DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -151,6 +154,16 @@ export default function ProjectBoardPage() {
   // Inline toast state
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastCounterRef = useRef(0);
+
+  const [activeIssue, setActiveIssue] = useState<IssueSummary | null>(null);
+
+  // Apply grabbing cursor globally while dragging so it persists over any element
+  useEffect(() => {
+    if (!activeIssue) return;
+    const prev = document.body.style.cursor;
+    document.body.style.cursor = "grabbing";
+    return () => { document.body.style.cursor = prev; };
+  }, [activeIssue]);
 
   // FIX #1 — generation counter to discard stale fetch results
   const fetchGenRef = useRef(0);
@@ -372,15 +385,29 @@ export default function ProjectBoardPage() {
   // ---------------------------------------------------------------------------
 
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
     useSensor(KeyboardSensor),
   );
+
+  // ---------------------------------------------------------------------------
+  // DnD drag start — track which issue is being dragged for the overlay
+  // ---------------------------------------------------------------------------
+
+  function handleDragStart(event: DragStartEvent) {
+    const issueId = event.active.id as string;
+    for (const status of ALL_STATUSES) {
+      const found = boardState[status].items.find((i) => i.id === issueId);
+      if (found) { setActiveIssue(found); break; }
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // DnD drag end — optimistic update + PATCH + FIX #2 functional rollback
   // ---------------------------------------------------------------------------
 
   async function handleDragEnd(event: DragEndEvent) {
+    setActiveIssue(null);
     const { active, over } = event;
     if (!over) return;
 
@@ -923,7 +950,7 @@ export default function ProjectBoardPage() {
       />
 
       {/* Board */}
-      <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
         <div className="board-row">
           {visibleStatuses.map((status) => {
             const col = boardState[status];
@@ -942,6 +969,46 @@ export default function ProjectBoardPage() {
             );
           })}
         </div>
+
+        <DragOverlay dropAnimation={null}>
+          {activeIssue ? (
+            <div
+              style={{
+                background: "var(--surface)",
+                border: "2px solid var(--accent-1-strong)",
+                borderRadius: "var(--radius)",
+                padding: "10px 12px",
+                boxShadow: "0 8px 28px rgba(155,203,87,0.28)",
+                cursor: "grabbing",
+                pointerEvents: "none",
+                minWidth: 180,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 600,
+                  color: "var(--ink-2)",
+                  fontFamily: "JetBrains Mono, monospace",
+                  marginBottom: 4,
+                }}
+              >
+                {activeIssue.displayKey}
+              </div>
+              <div
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--ink-0)",
+                  fontFamily: "Manrope, sans-serif",
+                  lineHeight: 1.35,
+                }}
+              >
+                {activeIssue.title}
+              </div>
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
 
       {/* Detail modal */}

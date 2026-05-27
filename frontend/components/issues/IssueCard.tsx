@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useDraggable } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { Avatar } from "@/components/ui/Avatar";
 import type { IssueSummary, IssueStatus, LabelDto } from "@/lib/types/issues";
 
@@ -44,6 +46,10 @@ export function IssueCard({ issue, onOpen, onStatusChange }: IssueCardProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: issue.id,
+  });
+
   useEffect(() => {
     if (!dropdownOpen) return;
     function handleMouseDown(e: MouseEvent) {
@@ -60,9 +66,18 @@ export function IssueCard({ issue, onOpen, onStatusChange }: IssueCardProps) {
 
   return (
     <div
+      ref={setNodeRef}
       className="issue-card"
       data-issue-id={issue.id}
       data-issue-number={issue.number}
+      style={{
+        transform: CSS.Translate.toString(transform),
+        opacity: isDragging ? 0 : undefined,
+        cursor: "grab",
+        transition: isDragging ? undefined : "opacity 150ms",
+      }}
+      {...attributes}
+      {...listeners}
       onClick={onOpen}
     >
       <div className="issue-card__top">
