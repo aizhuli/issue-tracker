@@ -599,9 +599,11 @@ export function IssueDetail({
                 >
                   Description
                 </span>
-                <ReactMarkdown remarkPlugins={[remarkGfm]} className="markdown-body">
-                  {issue.description}
-                </ReactMarkdown>
+                <div className="markdown-body">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {issue.description}
+                  </ReactMarkdown>
+                </div>
               </div>
             ) : (
               <p style={{ margin: 0, fontSize: 13, color: "var(--ink-3)", fontStyle: "italic" }}>
@@ -643,9 +645,11 @@ export function IssueDetail({
                   )}
                 </div>
                 {issue.acceptanceCriteria && (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} className="markdown-body">
-                    {issue.acceptanceCriteria}
-                  </ReactMarkdown>
+                  <div className="markdown-body">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {issue.acceptanceCriteria}
+                    </ReactMarkdown>
+                  </div>
                 )}
               </div>
             )}
