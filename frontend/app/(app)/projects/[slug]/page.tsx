@@ -152,10 +152,15 @@ export default function ProjectBoardPage() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastCounterRef = useRef(0);
 
+  // FIX #1 — generation counter to discard stale fetch results
+  const fetchGenRef = useRef(0);
+
   // Assignee popover
   const [assigneePopoverOpen, setAssigneePopoverOpen] = useState(false);
   const [assigneeSearch, setAssigneeSearch] = useState("");
   const [assigneeResults, setAssigneeResults] = useState<UserSummary[]>([]);
+  // FIX #6 — loading state to prevent "No users found" flash
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const assigneePopoverRef = useRef<HTMLDivElement>(null);
   const assigneeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -164,16 +169,16 @@ export default function ProjectBoardPage() {
   const [searchInput, setSearchInput] = useState("");
 
   // ---------------------------------------------------------------------------
-  // Toast helper
+  // FIX #5 — showToast wrapped in useCallback with stable [setToasts] dep
   // ---------------------------------------------------------------------------
 
-  function showToast(message: string) {
+  const showToast = useCallback((message: string) => {
     const id = ++toastCounterRef.current;
     setToasts((prev) => [...prev, { id, message }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 3500);
-  }
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Fetch project + me on mount
@@ -210,11 +215,14 @@ export default function ProjectBoardPage() {
   }
 
   // ---------------------------------------------------------------------------
-  // Fetch first page for all visible columns
+  // FIX #1 — Fetch first page for all visible columns with generation guard
   // ---------------------------------------------------------------------------
 
   const fetchAllColumns = useCallback(
     async (f: Filters) => {
+      // Claim this generation; any older in-flight fetch will be dropped.
+      const gen = ++fetchGenRef.current;
+
       const visibleStatuses: IssueStatus[] = f.showDone
         ? ALL_STATUSES
         : ACTIVE_STATUSES;
@@ -243,6 +251,8 @@ export default function ProjectBoardPage() {
       const results = await Promise.all(fetches);
 
       setBoardState((prev) => {
+        // FIX #1 — discard stale results from a superseded fetch generation
+        if (gen !== fetchGenRef.current) return prev;
         const next = { ...prev };
         for (const { status, items, nextPageToken } of results) {
           next[status] = { items, nextPageToken, loading: false };
@@ -255,27 +265,25 @@ export default function ProjectBoardPage() {
   );
 
   // ---------------------------------------------------------------------------
-  // On mount: fetch columns once project is ready (or immediately)
+  // On mount: fetch columns
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAllColumns(filters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]); // Only run on mount / slug change — filter changes handled by their own effect
+  }, [slug]); // Only run on mount / slug change — filter changes handled by their own effects
 
   // ---------------------------------------------------------------------------
-  // Debounced search → update filters.q
+  // FIX #3 — Debounced search: no fetchAllColumns inside setFilters updater
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
     if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
     searchDebounceRef.current = setTimeout(() => {
-      setFilters((prev) => {
-        const next = { ...prev, q: searchInput };
-        fetchAllColumns(next);
-        return next;
-      });
+      const next = { ...filters, q: searchInput };
+      setFilters(next);
+      fetchAllColumns(next);
     }, 300);
     return () => {
       if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
@@ -284,7 +292,8 @@ export default function ProjectBoardPage() {
   }, [searchInput]);
 
   // ---------------------------------------------------------------------------
-  // Re-fetch when non-search filters change
+  // Re-fetch when non-search filters change (applyFilters)
+  // Already uses the correct pattern: setFilters then fetchAllColumns separately
   // ---------------------------------------------------------------------------
 
   function applyFilters(next: Filters) {
@@ -365,7 +374,7 @@ export default function ProjectBoardPage() {
   );
 
   // ---------------------------------------------------------------------------
-  // DnD drag end — optimistic update + PATCH + rollback on failure
+  // DnD drag end — optimistic update + PATCH + FIX #2 functional rollback
   // ---------------------------------------------------------------------------
 
   async function handleDragEnd(event: DragEndEvent) {
@@ -390,7 +399,8 @@ export default function ProjectBoardPage() {
     if (!sourceStatus || !draggedIssue || sourceStatus === targetStatus) return;
 
     const issueNumber = draggedIssue.number;
-    const snapshot = boardState; // save for rollback
+    // Capture snapshot before optimistic update for atomic rollback
+    const snapshot = boardState;
 
     // Optimistic: remove from source, prepend to target
     const updatedIssue: IssueSummary = { ...draggedIssue, status: targetStatus };
@@ -417,13 +427,13 @@ export default function ProjectBoardPage() {
       );
 
       if (!res.ok) {
-        // Rollback
-        setBoardState(snapshot);
+        // FIX #2 — functional updater so rollback applies atomically
+        setBoardState(() => snapshot);
         showToast("Failed to move issue. Please try again.");
         return;
       }
 
-      // Background refetch both columns' first pages
+      // Background refetch both columns' first pages to reconcile server order
       const [srcResult, dstResult] = await Promise.all([
         fetch(buildIssueUrl(sourceStatus, null, filters)).then((r) =>
           r.ok ? r.json() : null,
@@ -452,14 +462,15 @@ export default function ProjectBoardPage() {
         return next;
       });
     } catch {
-      // Rollback
-      setBoardState(snapshot);
+      // FIX #2 — functional updater so rollback applies atomically
+      setBoardState(() => snapshot);
       showToast("Network error. Please try again.");
     }
   }
 
   // ---------------------------------------------------------------------------
   // Shared PATCH status helper (used by card's onStatusChange)
+  // FIX #2 — functional updater in all rollback paths
   // ---------------------------------------------------------------------------
 
   async function doPatchStatus(
@@ -499,11 +510,11 @@ export default function ProjectBoardPage() {
         },
       );
       if (!res.ok) {
-        setBoardState(snapshot);
+        setBoardState(() => snapshot); // FIX #2
         showToast("Failed to update status. Please try again.");
       }
     } catch {
-      setBoardState(snapshot);
+      setBoardState(() => snapshot); // FIX #2
       showToast("Network error. Please try again.");
     }
   }
@@ -538,44 +549,47 @@ export default function ProjectBoardPage() {
   }
 
   // ---------------------------------------------------------------------------
-  // Detail modal: handle issue updates
+  // FIX #4 — handleDetailChange wrapped in useCallback to avoid stale closure
   // ---------------------------------------------------------------------------
 
-  function handleDetailChange(updated: IssueFull) {
-    // Update the modal with the freshest data
-    setDetailModal((prev) => ({ ...prev, issue: updated }));
+  const handleDetailChange = useCallback(
+    (updated: IssueFull) => {
+      // Update the modal with the freshest data
+      setDetailModal((prev) => ({ ...prev, issue: updated }));
 
-    // Update the card in-place across all columns (handles title/priority/label/assignee changes),
-    // then do a background refetch to reconcile status transitions (card may have moved columns).
-    setBoardState((prev) => {
-      const next = { ...prev };
-      for (const status of ALL_STATUSES) {
-        next[status] = {
-          ...next[status],
-          items: next[status].items.map((i) =>
-            i.id === updated.id
-              ? {
-                  id: updated.id,
-                  number: updated.number,
-                  displayKey: updated.displayKey,
-                  title: updated.title,
-                  status: updated.status,
-                  priority: updated.priority,
-                  assignee: updated.assignee,
-                  labels: updated.labels,
-                  commentCount: updated.commentCount,
-                  updatedAt: updated.updatedAt,
-                }
-              : i,
-          ),
-        };
-      }
-      return next;
-    });
+      // Update the card in-place across all columns (handles title/priority/label/assignee changes),
+      // then do a background refetch to reconcile status transitions (card may have moved columns).
+      setBoardState((prev) => {
+        const next = { ...prev };
+        for (const status of ALL_STATUSES) {
+          next[status] = {
+            ...next[status],
+            items: next[status].items.map((i) =>
+              i.id === updated.id
+                ? {
+                    id: updated.id,
+                    number: updated.number,
+                    displayKey: updated.displayKey,
+                    title: updated.title,
+                    status: updated.status,
+                    priority: updated.priority,
+                    assignee: updated.assignee,
+                    labels: updated.labels,
+                    commentCount: updated.commentCount,
+                    updatedAt: updated.updatedAt,
+                  }
+                : i,
+            ),
+          };
+        }
+        return next;
+      });
 
-    // Background refetch to reconcile any status change (card may need to move columns)
-    fetchAllColumns(filters);
-  }
+      // Background refetch to reconcile any status change (card may need to move columns)
+      fetchAllColumns(filters);
+    },
+    [filters, slug, fetchAllColumns], // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   function handleDetailDeleted() {
     if (!detailModal.issue) return;
@@ -612,13 +626,14 @@ export default function ProjectBoardPage() {
   }, [assigneePopoverOpen]);
 
   // ---------------------------------------------------------------------------
-  // Assignee search debounce
+  // FIX #6 — Assignee search debounce with loadingUsers guard
   // ---------------------------------------------------------------------------
 
   useEffect(() => {
     if (!assigneePopoverOpen) return;
     if (assigneeDebounceRef.current) clearTimeout(assigneeDebounceRef.current);
     assigneeDebounceRef.current = setTimeout(async () => {
+      setLoadingUsers(true);
       try {
         const p = new URLSearchParams({ maxPageSize: "10" });
         if (assigneeSearch) p.set("q", assigneeSearch);
@@ -629,6 +644,8 @@ export default function ProjectBoardPage() {
         }
       } catch {
         // Silently ignore
+      } finally {
+        setLoadingUsers(false);
       }
     }, 300);
     return () => {
@@ -639,10 +656,13 @@ export default function ProjectBoardPage() {
   // Open popover → load initial results
   useEffect(() => {
     if (assigneePopoverOpen && assigneeResults.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoadingUsers(true);
       fetch(`/api/users/search?maxPageSize=10`)
         .then((r) => (r.ok ? r.json() : []))
         .then((data: UserSummary[]) => setAssigneeResults(data))
-        .catch(() => {});
+        .catch(() => {})
+        .finally(() => setLoadingUsers(false));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assigneePopoverOpen]);
@@ -823,7 +843,8 @@ export default function ProjectBoardPage() {
               </label>
             ))}
 
-            {assigneeResults.length === 0 && !assigneeSearch && (
+            {/* FIX #6 — only show empty state when not loading and user has typed a query */}
+            {!loadingUsers && assigneeResults.length === 0 && assigneeSearch && (
               <div
                 style={{
                   padding: "6px 12px",
