@@ -93,8 +93,9 @@ public static class CreateIssue
                 ?? throw new NotFoundException("Project not found.", "projects:project:not_found");
 
             var numberResult = await db.Database
-                .SqlQuery<int>(
-                    $"UPDATE projects SET next_issue_number = next_issue_number + 1 WHERE id = {project.Id} RETURNING next_issue_number - 1")
+                .SqlQueryRaw<int>(
+                    """UPDATE projects SET "NextIssueNumber" = "NextIssueNumber" + 1 WHERE "Id" = {0} RETURNING "NextIssueNumber" - 1""",
+                    project.Id)
                 .ToListAsync(ct);
 
             var issueNumber = numberResult[0];
