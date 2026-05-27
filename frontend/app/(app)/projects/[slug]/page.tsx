@@ -316,7 +316,10 @@ export default function ProjectBoardPage() {
 
     try {
       const res = await fetch(buildIssueUrl(status, col.nextPageToken, filters));
-      if (!res.ok) return;
+      if (!res.ok) {
+        setBoardState((prev) => ({ ...prev, [status]: { ...prev[status], loading: false } }));
+        return;
+      }
       const data: { items: IssueSummary[]; nextPageToken: string | null } =
         await res.json();
       setBoardState((prev) => ({
@@ -539,9 +542,9 @@ export default function ProjectBoardPage() {
     };
     setBoardState((prev) => ({
       ...prev,
-      backlog: {
-        ...prev.backlog,
-        items: [summary, ...prev.backlog.items],
+      [newIssue.status]: {
+        ...prev[newIssue.status],
+        items: [summary, ...prev[newIssue.status].items],
       },
     }));
     // Open detail modal with the new issue
@@ -843,16 +846,13 @@ export default function ProjectBoardPage() {
               </label>
             ))}
 
-            {/* FIX #6 — only show empty state when not loading and user has typed a query */}
+            {!assigneeSearch && (
+              <div style={{ padding: "6px 12px", fontSize: 12, color: "var(--ink-3)", fontStyle: "italic" }}>
+                Type to search users…
+              </div>
+            )}
             {!loadingUsers && assigneeResults.length === 0 && assigneeSearch && (
-              <div
-                style={{
-                  padding: "6px 12px",
-                  fontSize: 12,
-                  color: "var(--ink-3)",
-                  fontStyle: "italic",
-                }}
-              >
+              <div style={{ padding: "6px 12px", fontSize: 12, color: "var(--ink-3)", fontStyle: "italic" }}>
                 No users found
               </div>
             )}
