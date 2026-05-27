@@ -22,6 +22,25 @@ const ERROR_CODE_TO_FIELD: Record<string, string> = {
   "projects:project:edit:forbidden": "_form",
   "projects:project:delete:forbidden": "_form",
   "projects:project:not_found": "_form",
+  // Labels
+  "projects:label:name:already_exists": "_form",
+  "projects:label:not_found": "_form",
+  "projects:label:edit:forbidden": "_form",
+  // Issues
+  "issues:issue:title:required_or_too_long": "title",
+  "issues:issue:description:too_long": "description",
+  "issues:issue:acceptance_criteria:too_long": "acceptanceCriteria",
+  "issues:issue:priority:invalid": "priority",
+  "issues:issue:labels:too_many": "labelIds",
+  "issues:issue:labels:not_in_project": "labelIds",
+  "issues:issue:assignee:not_found": "assigneeId",
+  "issues:issue:status:invalid": "status",
+  "issues:issue:not_found": "_form",
+  "issues:issue:delete:forbidden": "_form",
+  // Comments
+  "comments:comment:not_found": "_form",
+  "comments:comment:update:forbidden": "_form",
+  "comments:comment:delete:forbidden": "_form",
   // Auth (for future use)
   "auth:session:missing": "_form",
 };

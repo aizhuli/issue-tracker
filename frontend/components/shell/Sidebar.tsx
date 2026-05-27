@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { Avatar } from "@/components/ui/Avatar";
 
@@ -41,14 +42,19 @@ export function Sidebar() {
       }}
     >
       {/* Logo / brand */}
-      <div
+      <Link
+        href="/projects"
         style={{
           padding: "16px 14px 12px",
           borderBottom: "1px solid var(--border-2)",
           display: "flex",
           alignItems: "center",
           gap: 8,
+          textDecoration: "none",
+          transition: "opacity 120ms",
         }}
+        onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.75"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
       >
         <div
           style={{
@@ -76,7 +82,7 @@ export function Sidebar() {
         <span className="sb-ws-name" style={{ color: "var(--ink-0)" }}>
           Aigo
         </span>
-      </div>
+      </Link>
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: "8px 6px" }}>

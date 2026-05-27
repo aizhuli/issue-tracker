@@ -15,6 +15,7 @@ public static class IdFactoryExtensions
         services.AddIdGen(generatorId, () => new IdGeneratorOptions
         {
             IdStructure = new IdStructure(52, 8, 3),
+            SequenceOverflowStrategy = SequenceOverflowStrategy.SpinWait,
         });
 
         services.AddSingleton<IdFactory>();

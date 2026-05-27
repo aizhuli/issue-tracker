@@ -22,19 +22,115 @@ namespace AiIssueTracker.Api.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("AiIssueTracker.Api.Data.Entities.Comment", b =>
+                {
+                    b.Property<long>("Id")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("AuthorId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("IssueId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("IssueId", "CreatedAt", "Id");
+
+                    b.ToTable("comments", (string)null);
+                });
+
             modelBuilder.Entity("AiIssueTracker.Api.Data.Entities.Issue", b =>
                 {
                     b.Property<long>("Id")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("AcceptanceCriteria")
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)");
+
+                    b.Property<bool>("AcceptanceCriteriaAiSuggested")
+                        .HasColumnType("boolean");
+
+                    b.Property<long?>("AssigneeId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Priority")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("ReporterId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.HasKey("Id");
 
-                    b.HasIndex("ProjectId");
+                    b.HasIndex("AssigneeId");
+
+                    b.HasIndex("ReporterId");
+
+                    b.HasIndex("ProjectId", "Number")
+                        .IsUnique();
+
+                    b.HasIndex("ProjectId", "Status", "CreatedAt", "Id")
+                        .IsDescending(false, false, true, true);
 
                     b.ToTable("issues", (string)null);
+                });
+
+            modelBuilder.Entity("AiIssueTracker.Api.Data.Entities.IssueLabel", b =>
+                {
+                    b.Property<long>("IssueId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("LabelId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("IssueId", "LabelId");
+
+                    b.HasIndex("LabelId");
+
+                    b.ToTable("issue_labels", (string)null);
                 });
 
             modelBuilder.Entity("AiIssueTracker.Api.Data.Entities.Label", b =>
@@ -42,12 +138,26 @@ namespace AiIssueTracker.Api.Data.Migrations
                     b.Property<long>("Id")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ProjectId");
+                    b.HasIndex("ProjectId", "Name")
+                        .IsUnique();
 
                     b.ToTable("labels", (string)null);
                 });
@@ -57,7 +167,7 @@ namespace AiIssueTracker.Api.Data.Migrations
                     b.Property<long>("Id")
                         .HasColumnType("bigint");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Description")
@@ -69,6 +179,11 @@ namespace AiIssueTracker.Api.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<int>("NextIssueNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
+
                     b.Property<long>("OwnerId")
                         .HasColumnType("bigint");
 
@@ -77,7 +192,7 @@ namespace AiIssueTracker.Api.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<DateTime>("UpdatedAt")
+                    b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
@@ -99,7 +214,7 @@ namespace AiIssueTracker.Api.Data.Migrations
                         .HasMaxLength(2048)
                         .HasColumnType("character varying(2048)");
 
-                    b.Property<DateTime>("CreatedAt")
+                    b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Email")
@@ -124,22 +239,79 @@ namespace AiIssueTracker.Api.Data.Migrations
                     b.ToTable("users", (string)null);
                 });
 
+            modelBuilder.Entity("AiIssueTracker.Api.Data.Entities.Comment", b =>
+                {
+                    b.HasOne("AiIssueTracker.Api.Data.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AiIssueTracker.Api.Data.Entities.Issue", "Issue")
+                        .WithMany("Comments")
+                        .HasForeignKey("IssueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Issue");
+                });
+
             modelBuilder.Entity("AiIssueTracker.Api.Data.Entities.Issue", b =>
                 {
-                    b.HasOne("AiIssueTracker.Api.Data.Entities.Project", null)
+                    b.HasOne("AiIssueTracker.Api.Data.Entities.User", "Assignee")
+                        .WithMany()
+                        .HasForeignKey("AssigneeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("AiIssueTracker.Api.Data.Entities.Project", "Project")
                         .WithMany("Issues")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("AiIssueTracker.Api.Data.Entities.User", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReporterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assignee");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("Reporter");
+                });
+
+            modelBuilder.Entity("AiIssueTracker.Api.Data.Entities.IssueLabel", b =>
+                {
+                    b.HasOne("AiIssueTracker.Api.Data.Entities.Issue", "Issue")
+                        .WithMany("IssueLabels")
+                        .HasForeignKey("IssueId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("AiIssueTracker.Api.Data.Entities.Label", "Label")
+                        .WithMany("IssueLabels")
+                        .HasForeignKey("LabelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Issue");
+
+                    b.Navigation("Label");
                 });
 
             modelBuilder.Entity("AiIssueTracker.Api.Data.Entities.Label", b =>
                 {
-                    b.HasOne("AiIssueTracker.Api.Data.Entities.Project", null)
+                    b.HasOne("AiIssueTracker.Api.Data.Entities.Project", "Project")
                         .WithMany("Labels")
                         .HasForeignKey("ProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("AiIssueTracker.Api.Data.Entities.Project", b =>
@@ -151,6 +323,18 @@ namespace AiIssueTracker.Api.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("AiIssueTracker.Api.Data.Entities.Issue", b =>
+                {
+                    b.Navigation("Comments");
+
+                    b.Navigation("IssueLabels");
+                });
+
+            modelBuilder.Entity("AiIssueTracker.Api.Data.Entities.Label", b =>
+                {
+                    b.Navigation("IssueLabels");
                 });
 
             modelBuilder.Entity("AiIssueTracker.Api.Data.Entities.Project", b =>
