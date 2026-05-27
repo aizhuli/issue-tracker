@@ -132,24 +132,12 @@ describe("AssigneePicker", () => {
   it("selecting Unassigned calls onChange with null", async () => {
     vi.stubGlobal("fetch", makeFetchOk([alice]));
     const onChange = vi.fn();
+    // value=alice so the trigger button shows "Alice", not "Unassigned".
+    // The dropdown Unassigned row is a <button> whose accessible name includes "Unassigned".
     render(<AssigneePicker value={alice} onChange={onChange} />);
     await openPicker();
 
-    // The Unassigned row is always in the dropdown
-    // getAllByText because "Unassigned" also appears in the trigger
-    const unassignedButtons = screen.getAllByRole("button");
-    const unassignedBtn = unassignedButtons.find(
-      (btn) => btn.textContent?.includes("Unassigned") && btn !== screen.getAllByRole("button")[0]
-    );
-    if (unassignedBtn) {
-      fireEvent.click(unassignedBtn);
-      expect(onChange).toHaveBeenCalledWith(null);
-    } else {
-      // Fallback: click the button with text Unassigned in the dropdown
-      const allUnassigned = screen.getAllByText("Unassigned");
-      // The second one should be inside the dropdown
-      fireEvent.click(allUnassigned[allUnassigned.length - 1].closest("button")!);
-      expect(onChange).toHaveBeenCalledWith(null);
-    }
+    fireEvent.click(screen.getByText("Unassigned").closest("button")!);
+    expect(onChange).toHaveBeenCalledWith(null);
   });
 });

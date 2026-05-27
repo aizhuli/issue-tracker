@@ -613,6 +613,7 @@ function LabelRow({ label, isSelected, isOwner, onToggle, onRename, onDelete }: 
         <div style={{ position: "relative", flexShrink: 0, paddingRight: 6 }}>
           <button
             type="button"
+            aria-label="Label options"
             onClick={(e) => {
               e.stopPropagation();
               setMenuOpen((v) => !v);

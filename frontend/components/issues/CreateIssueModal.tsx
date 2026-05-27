@@ -140,6 +140,7 @@ export function CreateIssueModal({
 
         <button
           type="button"
+          aria-label="Create issue"
           onClick={handleSubmit}
           disabled={isDisabled}
           style={{

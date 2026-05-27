@@ -89,14 +89,11 @@ describe("CreateIssueModal", () => {
     });
 
     act(() => {
-      fireEvent.click(screen.getByRole("button", { name: /create/i }));
+      fireEvent.click(screen.getByRole("button", { name: /create issue/i }));
     });
 
-    // While fetch is pending, the button shows a spinner (no text) and is disabled
-    // Find the submit button by its disabled state — it's the only button in the modal
-    const buttons = screen.getAllByRole("button");
-    const submitBtn = buttons[buttons.length - 1];
-    expect(submitBtn).toBeDisabled();
+    // While fetch is pending the button shows a spinner but keeps its aria-label
+    expect(screen.getByRole("button", { name: /create issue/i })).toBeDisabled();
 
     // Resolve the fetch to clean up
     resolveFetch({ ok: true, json: () => Promise.resolve(mockIssue) });

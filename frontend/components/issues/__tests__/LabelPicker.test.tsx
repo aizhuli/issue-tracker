@@ -109,16 +109,10 @@ describe("LabelPicker", () => {
   it("owner sees ••• menu button when hovering a label row", async () => {
     renderPicker({ meId: OWNER_ID });
     await openPicker();
-    // Simulate hover on the bug row
-    const bugRow = screen.getByText("bug").closest("div");
-    fireEvent.mouseEnter(bugRow!);
-    // The owner should see the dots menu button
-    // The icon renders as an Icon component with name="dots"
-    // We check for aria pattern or fallback - look for the button without a text label
-    const buttons = screen.getAllByRole("button");
-    // Filter buttons that are inside the dropdown
-    // The dots menu triggers menu open; after hovering we should see it
-    expect(bugRow).toBeInTheDocument();
+    const bugRow = screen.getByText("bug").closest("div")!;
+    fireEvent.mouseEnter(bugRow);
+    // The dots button is only rendered when isOwner && hovered — assert it appeared
+    expect(screen.getByRole("button", { name: /label options/i })).toBeInTheDocument();
   });
 
   it("non-owner does not see ••• menu", async () => {
@@ -152,14 +146,9 @@ describe("LabelPicker", () => {
     const labelRowDiv = screen.getByText("bug").closest("div")!;
     fireEvent.mouseEnter(labelRowDiv);
 
-    // The ••• button (dots icon, no text) is now rendered. It is the only button in the
-    // row that contains no text — it wraps an SVG Icon. Find it by excluding the toggle
-    // button (which contains the label name span).
-    const dotsBtn = screen
-      .getAllByRole("button")
-      .find((btn) => !btn.textContent?.trim());
-    expect(dotsBtn).toBeDefined();
-    fireEvent.click(dotsBtn!);
+    // The ••• button has aria-label="Label options"
+    const dotsBtn = screen.getByRole("button", { name: /label options/i });
+    fireEvent.click(dotsBtn);
 
     // The popup menu is now open — click "Rename"
     const renameBtn = screen.getByRole("button", { name: /^rename$/i });
@@ -195,12 +184,8 @@ describe("LabelPicker", () => {
     const labelRowDiv = screen.getByText("bug").closest("div")!;
     fireEvent.mouseEnter(labelRowDiv);
 
-    // Click the ••• (dots) button — it contains only an SVG, so textContent is empty
-    const dotsBtn = screen
-      .getAllByRole("button")
-      .find((btn) => !btn.textContent?.trim());
-    expect(dotsBtn).toBeDefined();
-    fireEvent.click(dotsBtn!);
+    // The ••• button has aria-label="Label options"
+    fireEvent.click(screen.getByRole("button", { name: /label options/i }));
 
     // Click the "Delete" option in the popup menu
     const deleteMenuBtn = screen.getByRole("button", { name: /^delete$/i });
