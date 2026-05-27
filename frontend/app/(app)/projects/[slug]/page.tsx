@@ -542,9 +542,11 @@ export default function ProjectBoardPage() {
   // ---------------------------------------------------------------------------
 
   function handleDetailChange(updated: IssueFull) {
+    // Update the modal with the freshest data
     setDetailModal((prev) => ({ ...prev, issue: updated }));
 
-    // Update the card in board state if status didn't change
+    // Update the card in-place across all columns (handles title/priority/label/assignee changes),
+    // then do a background refetch to reconcile status transitions (card may have moved columns).
     setBoardState((prev) => {
       const next = { ...prev };
       for (const status of ALL_STATUSES) {
@@ -568,13 +570,11 @@ export default function ProjectBoardPage() {
           ),
         };
       }
-      // If status changed, move the card across columns
-      if (updated.status !== next[updated.status as IssueStatus].items.find((i) => i.id === updated.id)?.status) {
-        // Re-fetch to reconcile
-        fetchAllColumns(filters);
-      }
       return next;
     });
+
+    // Background refetch to reconcile any status change (card may need to move columns)
+    fetchAllColumns(filters);
   }
 
   function handleDetailDeleted() {
