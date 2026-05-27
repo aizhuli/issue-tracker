@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui/Avatar";
 import { Icon } from "@/components/ui/Icon";
 
@@ -21,6 +22,7 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, me, onEdit, onDelete }: ProjectCardProps) {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const isOwner = me !== null && project.ownerId === me.id;
@@ -41,6 +43,12 @@ export function ProjectCard({ project, me, onEdit, onDelete }: ProjectCardProps)
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      onClick={() => router.push(`/projects/${project.slug}`)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") router.push(`/projects/${project.slug}`);
+      }}
       style={{
         background: "var(--surface)",
         border: "1px solid var(--border)",
@@ -52,6 +60,7 @@ export function ProjectCard({ project, me, onEdit, onDelete }: ProjectCardProps)
         gap: "10px",
         transition: "box-shadow 0.15s ease",
         position: "relative",
+        cursor: "pointer",
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLDivElement).style.boxShadow = "var(--shadow-md)";
@@ -107,7 +116,7 @@ export function ProjectCard({ project, me, onEdit, onDelete }: ProjectCardProps)
             <button
               aria-label="Project options"
               aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((prev) => !prev)}
+              onClick={(e) => { e.stopPropagation(); setMenuOpen((prev) => !prev); }}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -152,7 +161,8 @@ export function ProjectCard({ project, me, onEdit, onDelete }: ProjectCardProps)
                 }}
               >
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setMenuOpen(false);
                     onEdit?.();
                   }}
@@ -178,7 +188,8 @@ export function ProjectCard({ project, me, onEdit, onDelete }: ProjectCardProps)
                   Edit
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setMenuOpen(false);
                     onDelete?.();
                   }}
