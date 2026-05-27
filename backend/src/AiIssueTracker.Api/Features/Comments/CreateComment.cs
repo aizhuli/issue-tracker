@@ -34,7 +34,7 @@ public static class CreateComment
                 .WithName("CreateComment");
         }
 
-        public record Body(string Content);
+        public record Body([property: System.Text.Json.Serialization.JsonPropertyName("body")] string Content);
     }
 
     public record Request(string Slug, int Number, string Body) : IRequest<CommentDto>;

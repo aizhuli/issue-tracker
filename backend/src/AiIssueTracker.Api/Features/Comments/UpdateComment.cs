@@ -32,7 +32,7 @@ public static class UpdateComment
                 .WithName("UpdateComment");
         }
 
-        public record Body(string Content);
+        public record Body([property: System.Text.Json.Serialization.JsonPropertyName("body")] string Content);
     }
 
     public record Request(string Slug, int Number, string CommentId, string Body) : IRequest<CommentDto>;
