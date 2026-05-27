@@ -136,48 +136,80 @@ describe("LabelPicker", () => {
   });
 
   it("owner can rename a label", async () => {
+    const renamedLabel = { ...labelsFromApi[0], name: "defect" };
     const fetchMock = vi.fn()
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(labelsFromApi) })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve({ ...labelsFromApi[0], name: "defect" }),
-      });
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve(renamedLabel) });
     vi.stubGlobal("fetch", fetchMock);
-    renderPicker({ meId: OWNER_ID });
-    const trigger = screen.getByRole("button", { name: /labels/i });
-    fireEvent.click(trigger);
+
+    const onChange = vi.fn();
+    renderPicker({ meId: OWNER_ID, onChange });
+    await openPicker(fetchMock);
+
+    // Hover over the LabelRow outer div to make hovered=true and reveal the ••• button.
+    // screen.getByText("bug") returns the <span> inside the toggle <button>.
+    // Its closest <div> is the LabelRow outer flex container.
+    const labelRowDiv = screen.getByText("bug").closest("div")!;
+    fireEvent.mouseEnter(labelRowDiv);
+
+    // The ••• button (dots icon, no text) is now rendered. It is the only button in the
+    // row that contains no text — it wraps an SVG Icon. Find it by excluding the toggle
+    // button (which contains the label name span).
+    const dotsBtn = screen
+      .getAllByRole("button")
+      .find((btn) => !btn.textContent?.trim());
+    expect(dotsBtn).toBeDefined();
+    fireEvent.click(dotsBtn!);
+
+    // The popup menu is now open — click "Rename"
+    const renameBtn = screen.getByRole("button", { name: /^rename$/i });
+    fireEvent.click(renameBtn);
+
+    // The rename inline input appears, pre-filled with "bug"
+    const renameInput = screen.getByDisplayValue("bug");
+    expect(renameInput).toBeInTheDocument();
+
+    // Type the new name and press Enter to confirm
+    fireEvent.change(renameInput, { target: { value: "defect" } });
+    fireEvent.keyDown(renameInput, { key: "Enter" });
+
     await act(async () => { await vi.runAllTimersAsync(); });
 
-    // Hover over bug row to reveal ••• button
-    const bugRow = screen.getByText("bug").closest("div");
-    fireEvent.mouseEnter(bugRow!);
-
-    // Find the ••• button (dots menu)
-    const dotsButtons = screen.getAllByRole("button").filter(
-      (btn) => btn.closest("[style*='position: relative']") !== null && btn.textContent !== "bug"
-    );
-    // Open the dots menu
-    const dotsBtn = screen.queryAllByRole("button").find(
-      (btn) => btn.getAttribute("style")?.includes("position") || btn.textContent?.trim() === ""
+    // PUT was called with the new name
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/labels/l1"),
+      expect.objectContaining({ method: "PUT" })
     );
 
-    // The rename flow is triggered via the dropdown menu
-    // We look for buttons inside the dots popup - but since hover triggers in jsdom can be tricky,
-    // we verify the rename input appears after triggering the edit state
-    // The component uses setEdit(id, "rename") from onRename callback
-    // Let's test via fireEvent more carefully
-    expect(bugRow).toBeInTheDocument();
+    // The updated name is now visible in the list
+    expect(screen.getByText("defect")).toBeInTheDocument();
   });
 
   it("owner can initiate delete confirm for a label", async () => {
     vi.stubGlobal("fetch", makeFetchOk(labelsFromApi));
-    renderPicker({ meId: OWNER_ID });
-    const trigger = screen.getByRole("button", { name: /labels/i });
-    fireEvent.click(trigger);
-    await act(async () => { await vi.runAllTimersAsync(); });
 
-    // Verify labels loaded
-    expect(screen.getByText("bug")).toBeInTheDocument();
-    expect(screen.getByText("feature")).toBeInTheDocument();
+    renderPicker({ meId: OWNER_ID });
+    await openPicker();
+
+    // Hover the LabelRow outer div to reveal the ••• button
+    const labelRowDiv = screen.getByText("bug").closest("div")!;
+    fireEvent.mouseEnter(labelRowDiv);
+
+    // Click the ••• (dots) button — it contains only an SVG, so textContent is empty
+    const dotsBtn = screen
+      .getAllByRole("button")
+      .find((btn) => !btn.textContent?.trim());
+    expect(dotsBtn).toBeDefined();
+    fireEvent.click(dotsBtn!);
+
+    // Click the "Delete" option in the popup menu
+    const deleteMenuBtn = screen.getByRole("button", { name: /^delete$/i });
+    fireEvent.click(deleteMenuBtn);
+
+    // The inline confirm UI replaces the row: "Delete <strong>bug</strong>?"
+    // with No / Yes buttons
+    expect(screen.getByText(/delete/i, { selector: "span" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^yes$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^no$/i })).toBeInTheDocument();
   });
 });
