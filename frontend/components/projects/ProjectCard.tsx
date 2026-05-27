@@ -47,7 +47,10 @@ export function ProjectCard({ project, me, onEdit, onDelete }: ProjectCardProps)
       tabIndex={0}
       onClick={() => router.push(`/projects/${project.slug}`)}
       onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") router.push(`/projects/${project.slug}`);
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          router.push(`/projects/${project.slug}`);
+        }
       }}
       style={{
         background: "var(--surface)",
