@@ -10,10 +10,11 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   labelledBy?: string;
+  className?: string;
   children: ReactNode;
 }
 
-export function Modal({ open, onClose, labelledBy, children }: ModalProps) {
+export function Modal({ open, onClose, labelledBy, className, children }: ModalProps) {
   // The inner dialog card — used for focus management and focus trap
   const cardRef = useRef<HTMLDivElement>(null);
   // Remember what was focused before opening so we can restore on close
@@ -122,6 +123,7 @@ export function Modal({ open, onClose, labelledBy, children }: ModalProps) {
           aria-labelledby={labelledBy}
           tabIndex={-1}
           onClick={(e) => e.stopPropagation()}
+          className={className}
           style={{
             pointerEvents: "auto",
             background: "var(--surface)",

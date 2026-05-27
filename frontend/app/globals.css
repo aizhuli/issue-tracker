@@ -622,6 +622,10 @@ body {
 /* ============================================================
    Issue detail — wide modal
    ============================================================ */
+.ai-modal--wide {
+  max-width: 720px;
+}
+
 .ai-modal--wide > * {
   max-width: 720px;
   max-height: 80vh;

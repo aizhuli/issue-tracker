@@ -1,9 +1,29 @@
 "use client";
 
 import { Dispatch, SetStateAction, useEffect, useRef } from "react";
-import { IssueStatus, MockIssue, createMockIssue } from "@/lib/mock-issues";
 
-const STATUS_ORDER: IssueStatus[] = [
+export type DemoIssueStatus =
+  | "backlog"
+  | "todo"
+  | "in_progress"
+  | "in_review"
+  | "done";
+
+export type DemoIssuePriority = "urgent" | "high" | "medium" | "low";
+
+export interface DemoIssue {
+  id: string;
+  title: string;
+  status: DemoIssueStatus;
+  priority: DemoIssuePriority;
+  points?: number;
+  assignee?: string;
+  labels?: string[];
+  comments?: number;
+  entering?: boolean;
+}
+
+const STATUS_ORDER: DemoIssueStatus[] = [
   "backlog",
   "todo",
   "in_progress",
@@ -13,16 +33,49 @@ const STATUS_ORDER: IssueStatus[] = [
 
 const NON_DONE = STATUS_ORDER.filter((s) => s !== "done");
 
+let _idCounter = 200;
+
+export function createDemoIssue(status: DemoIssueStatus): DemoIssue {
+  const ids = ["WEB", "MOB", "API", "DSN"];
+  const prefix = ids[Math.floor(Math.random() * ids.length)];
+  const titles = [
+    "Fix flaky test in CI pipeline",
+    "Refactor token refresh logic",
+    "Add pagination to search results",
+    "Update onboarding copy",
+    "Investigate memory leak in worker",
+    "Improve error messages for validation",
+    "Dark mode polish pass",
+    "Add export to CSV feature",
+  ];
+  const labelSets = [
+    ["frontend"], ["backend"], ["design"], ["ai"], ["a11y"], ["perf"],
+  ];
+  const assignees = ["u1", "u2", "u3", "u4", "u5", "u6"];
+  return {
+    id: `${prefix}-${++_idCounter}`,
+    title: titles[Math.floor(Math.random() * titles.length)],
+    status,
+    priority: (["low", "medium", "high", "urgent"] as DemoIssuePriority[])[
+      Math.floor(Math.random() * 4)
+    ],
+    points: [1, 2, 3, 5, 8][Math.floor(Math.random() * 5)],
+    assignee: assignees[Math.floor(Math.random() * assignees.length)],
+    labels: labelSets[Math.floor(Math.random() * labelSets.length)],
+    comments: 0,
+    entering: true,
+  };
+}
+
 export function useDemoAnimation(
-  _issues: MockIssue[],
-  setIssues: Dispatch<SetStateAction<MockIssue[]>>,
+  _issues: DemoIssue[],
+  setIssues: Dispatch<SetStateAction<DemoIssue[]>>,
 ) {
   const newCardCountRef = useRef(0);
   const timer2PausedRef = useRef(false);
 
   useEffect(() => {
     // Timer 1: advance a random non-done card every 3.5s.
-    // Uses functional update so no stale closure on issues.
     const t1 = setInterval(() => {
       setIssues((prev) => {
         const moveable = prev.filter((i) => i.status !== "done");
@@ -36,7 +89,7 @@ export function useDemoAnimation(
           setTimeout(() => {
             setIssues((p) =>
               p.map((x) =>
-                x.id === target.id ? { ...x, status: "backlog" as IssueStatus } : x,
+                x.id === target.id ? { ...x, status: "backlog" as DemoIssueStatus } : x,
               ),
             );
           }, 2000);
@@ -53,7 +106,7 @@ export function useDemoAnimation(
       if (timer2PausedRef.current) return;
 
       const randomNonDone = NON_DONE[Math.floor(Math.random() * NON_DONE.length)];
-      const newCard = createMockIssue(randomNonDone);
+      const newCard = createDemoIssue(randomNonDone);
 
       setIssues((prev) => [...prev, newCard]);
 
