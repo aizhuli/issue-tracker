@@ -33,6 +33,9 @@ export default async function IssueDetailPage({
 }) {
   const { slug, number } = await params;
 
+  // Reject non-numeric issue number before hitting the backend
+  if (!/^\d+$/.test(number)) notFound();
+
   const session = await getSession();
   if (!session.user) {
     redirect("/login");
@@ -48,20 +51,12 @@ export default async function IssueDetailPage({
     }),
   ]);
 
-  // Handle auth failure (should be caught by middleware, but guard anyway)
-  if (meRes.status === 401) {
-    redirect("/login");
-  }
+  // Any auth failure → treat as session expired
+  if (!meRes.ok) redirect("/login");
 
-  // Handle project not found
-  if (projectRes.status === 404) {
-    notFound();
-  }
-
-  // Handle issue not found
-  if (issueRes.status === 404) {
-    notFound();
-  }
+  // Any project or issue failure (404, 500, etc.) → not found rather than broken page
+  if (!projectRes.ok) notFound();
+  if (!issueRes.ok) notFound();
 
   const me: MeInfo = await meRes.json();
   const project: ProjectInfo = await projectRes.json();
