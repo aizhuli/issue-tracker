@@ -69,7 +69,6 @@ public static class GetIssue
                         Color: il.Label.Color))
                     .ToArray(),
                 AcceptanceCriteria: issue.AcceptanceCriteria,
-                AcceptanceCriteriaAiSuggested: issue.AcceptanceCriteriaAiSuggested,
                 CommentCount: commentCount,
                 CreatedAt: issue.CreatedAt,
                 UpdatedAt: issue.UpdatedAt,

@@ -17,7 +17,6 @@ public record IssueFull(
     UserSummary Reporter,
     LabelSummary[] Labels,
     string? AcceptanceCriteria,
-    bool AcceptanceCriteriaAiSuggested,
     int CommentCount,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,

@@ -78,7 +78,6 @@ public class CreateIssueTests(TestFixture fixture) : IAsyncLifetime
         body.DisplayKey.Should().Be("alpha_1");
         body.Assignee.Should().BeNull();
         body.Labels.Should().BeEmpty();
-        body.AcceptanceCriteriaAiSuggested.Should().BeFalse();
         body.ClosedAt.Should().BeNull();
 
         response.Headers.Location!.ToString().Should().Be("/api/projects/alpha/issues/1");

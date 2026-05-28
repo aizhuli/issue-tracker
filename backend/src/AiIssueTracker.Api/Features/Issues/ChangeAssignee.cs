@@ -109,7 +109,6 @@ public static class ChangeAssignee
                         Color: il.Label.Color))
                     .ToArray(),
                 AcceptanceCriteria: issue.AcceptanceCriteria,
-                AcceptanceCriteriaAiSuggested: issue.AcceptanceCriteriaAiSuggested,
                 CommentCount: commentCount,
                 CreatedAt: issue.CreatedAt,
                 UpdatedAt: issue.UpdatedAt,
