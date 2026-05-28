@@ -9,7 +9,7 @@ import { LabelPicker } from "@/components/issues/LabelPicker";
 import { CommentsSection } from "@/components/issues/CommentsSection";
 import { DeleteIssueDialog } from "@/components/issues/DeleteIssueDialog";
 import { mapProblemDetailsToFields } from "@/lib/errors";
-import type { IssueFull, IssueStatus, IssuePriority, UserSummary, LabelDto } from "@/lib/types/issues";
+import type { IssueFull, IssueStatus, IssuePriority, UserSummary, LabelDto, TriageSuggestion } from "@/lib/types/issues";
 
 interface IssueDetailProps {
   issue: IssueFull;
@@ -83,6 +83,7 @@ export function IssueDetail({
   const [editLabels, setEditLabels] = useState<LabelDto[]>(issue.labels);
 
   const [saving, setSaving] = useState(false);
+  const [aiSuggesting, setAiSuggesting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const canDelete = me.id === issue.reporter.id || me.id === projectOwnerId;
@@ -140,6 +141,44 @@ export function IssueDetail({
       setFieldErrors({ _form: "Failed to connect to the server." });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleAiSuggest() {
+    if (aiSuggesting || !editTitle.trim()) return;
+    setAiSuggesting(true);
+    setFieldErrors({});
+    try {
+      const res = await fetch(`/api/projects/${projectSlug}/issues/${issue.number}/ai/triage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editTitle.trim(),
+          description: editDescription || null,
+        }),
+      });
+
+      if (res.ok) {
+        const s: TriageSuggestion = await res.json();
+        setEditPriority(s.priority as IssuePriority);
+        setEditLabels((prev) => {
+          const existingIds = new Set(prev.map((l) => l.id));
+          const merged = [...prev];
+          for (const l of s.labels) {
+            if (!existingIds.has(l.id)) merged.push(l);
+          }
+          return merged;
+        });
+        setEditAcceptanceCriteria(s.acceptanceCriteria);
+        return;
+      }
+
+      const body = await res.json().catch(() => ({}));
+      setFieldErrors(mapProblemDetailsToFields(body));
+    } catch {
+      setFieldErrors({ _form: "Failed to connect to the server." });
+    } finally {
+      setAiSuggesting(false);
     }
   }
 
@@ -294,6 +333,46 @@ export function IssueDetail({
             {fieldErrors.acceptanceCriteria && (
               <span style={{ fontSize: 12, color: "#B94D2F" }}>{fieldErrors.acceptanceCriteria}</span>
             )}
+            <button
+              type="button"
+              onClick={handleAiSuggest}
+              disabled={aiSuggesting || !editTitle.trim()}
+              style={{
+                alignSelf: "flex-start",
+                padding: "6px 12px",
+                fontSize: 12.5,
+                fontWeight: 600,
+                background: aiSuggesting || !editTitle.trim() ? "var(--surface-3)" : "var(--surface-2)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-sm)",
+                color: aiSuggesting || !editTitle.trim() ? "var(--ink-3)" : "var(--ink-1)",
+                cursor: aiSuggesting || !editTitle.trim() ? "not-allowed" : "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                transition: "background 80ms ease",
+              }}
+            >
+              {aiSuggesting ? (
+                <>
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      display: "inline-block",
+                      width: 11,
+                      height: 11,
+                      border: "2px solid var(--border-3)",
+                      borderTopColor: "var(--ink-2)",
+                      borderRadius: "50%",
+                      animation: "spin 0.7s linear infinite",
+                    }}
+                  />
+                  Suggesting…
+                </>
+              ) : (
+                "✨ AI-suggest"
+              )}
+            </button>
           </div>
 
           <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
@@ -611,46 +690,24 @@ export function IssueDetail({
               </p>
             )}
 
-            {(issue.acceptanceCriteria || issue.acceptanceCriteriaAiSuggested) && (
+            {issue.acceptanceCriteria && (
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: "var(--ink-3)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.06em",
-                    }}
-                  >
-                    Acceptance criteria
-                  </span>
-                  {issue.acceptanceCriteriaAiSuggested && (
-                    <span
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 3,
-                        fontSize: 10.5,
-                        fontWeight: 600,
-                        color: "var(--accent-2-ink)",
-                        background: "var(--accent-2)",
-                        border: "1px solid var(--accent-1-strong)",
-                        borderRadius: "999px",
-                        padding: "1px 7px",
-                      }}
-                    >
-                      ✨ AI-suggested
-                    </span>
-                  )}
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "var(--ink-3)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  Acceptance criteria
+                </span>
+                <div className="markdown-body">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {issue.acceptanceCriteria}
+                  </ReactMarkdown>
                 </div>
-                {issue.acceptanceCriteria && (
-                  <div className="markdown-body">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {issue.acceptanceCriteria}
-                    </ReactMarkdown>
-                  </div>
-                )}
               </div>
             )}
 

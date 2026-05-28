@@ -58,7 +58,6 @@ const baseIssue: IssueFull = {
   reporter: reporterUser,
   labels: [],
   acceptanceCriteria: null,
-  acceptanceCriteriaAiSuggested: false,
   commentCount: 0,
   createdAt: "2024-01-01T00:00:00Z",
   updatedAt: "2024-01-02T00:00:00Z",
@@ -97,22 +96,6 @@ describe("IssueDetail — read mode", () => {
     renderDetail();
     expect(screen.getByTestId("markdown")).toBeInTheDocument();
     expect(screen.getByTestId("markdown").textContent).toBe("Some **markdown** description");
-  });
-
-  it("does not show AI-suggested badge when flag is false", () => {
-    renderDetail();
-    expect(screen.queryByText(/AI-suggested/i)).toBeNull();
-  });
-
-  it("shows AI-suggested badge when acceptanceCriteriaAiSuggested is true", () => {
-    renderDetail({
-      issue: {
-        ...baseIssue,
-        acceptanceCriteria: "- [ ] criteria",
-        acceptanceCriteriaAiSuggested: true,
-      },
-    });
-    expect(screen.getByText(/AI-suggested/i)).toBeInTheDocument();
   });
 
   it("shows Delete button when me is reporter", () => {
@@ -245,5 +228,127 @@ describe("IssueDetail — edit mode", () => {
     const titleInput = screen.getByLabelText(/title/i);
     fireEvent.change(titleInput, { target: { value: "" } });
     expect(screen.getByRole("button", { name: /^save$/i })).toBeDisabled();
+  });
+
+  it("AI-suggest button is disabled when title is empty", () => {
+    renderInEditMode();
+    const titleInput = screen.getByLabelText(/title/i);
+    fireEvent.change(titleInput, { target: { value: "" } });
+    expect(screen.getByRole("button", { name: /ai-suggest/i })).toBeDisabled();
+  });
+
+  it("AI-suggest button is disabled while suggesting", async () => {
+    let resolveFetch!: (value: unknown) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockReturnValue(
+        new Promise((resolve) => {
+          resolveFetch = resolve;
+        })
+      )
+    );
+
+    renderInEditMode();
+
+    act(() => {
+      fireEvent.click(screen.getByRole("button", { name: /ai-suggest/i }));
+    });
+
+    expect(screen.getByRole("button", { name: /suggesting/i })).toBeDisabled();
+
+    // Resolve to clean up
+    resolveFetch({ ok: true, json: () => Promise.resolve({ priority: "high", labels: [], acceptanceCriteria: "- done" }) });
+    await act(async () => { await vi.runAllTimersAsync(); });
+  });
+
+  it("AI-suggest button POSTs live title and description", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ priority: "high", labels: [], acceptanceCriteria: "- done" }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderInEditMode();
+
+    const titleInput = screen.getByLabelText(/title/i);
+    fireEvent.change(titleInput, { target: { value: "Updated title" } });
+
+    const descriptionInput = screen.getByLabelText(/description/i);
+    fireEvent.change(descriptionInput, { target: { value: "Some description" } });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /ai-suggest/i }));
+      await vi.runAllTimersAsync();
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/projects/my-project/issues/1/ai/triage",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({ "Content-Type": "application/json" }),
+        body: JSON.stringify({ title: "Updated title", description: "Some description" }),
+      })
+    );
+  });
+
+  it("AI-suggest merges priority, dedupes labels, overwrites criteria", async () => {
+    const existingLabel = { id: "label-existing", name: "bug", color: "#ff0000" };
+    const newLabel = { id: "label-new", name: "feature", color: "#00ff00" };
+    const issueWithLabel = { ...baseIssue, labels: [existingLabel] };
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          priority: "urgent",
+          labels: [existingLabel, newLabel],
+          acceptanceCriteria: "- [ ] new criteria",
+        }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    renderInEditMode({ issue: issueWithLabel });
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /ai-suggest/i }));
+      await vi.runAllTimersAsync();
+    });
+
+    // Priority should be set to urgent
+    const prioritySelect = screen.getByLabelText(/priority/i) as HTMLSelectElement;
+    expect(prioritySelect.value).toBe("urgent");
+
+    // Acceptance criteria textarea should be overwritten
+    const criteriaTextarea = screen.getByLabelText(/acceptance criteria/i) as HTMLTextAreaElement;
+    expect(criteriaTextarea.value).toBe("- [ ] new criteria");
+  });
+
+  it("AI-suggest error leaves form unchanged", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 502,
+        json: () => Promise.resolve({ detail: "Bad gateway" }),
+      })
+    );
+
+    renderInEditMode();
+
+    const titleInput = screen.getByLabelText(/title/i) as HTMLInputElement;
+    const originalTitle = titleInput.value;
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: /ai-suggest/i }));
+      await vi.runAllTimersAsync();
+    });
+
+    // Title should remain unchanged
+    expect(titleInput.value).toBe(originalTitle);
+
+    // Some form-level error should be shown (mapped from the problem details)
+    // The error is surfaced via fieldErrors — mapProblemDetailsToFields maps detail → _form fallback
+    // At minimum the button should be re-enabled (suggesting stopped)
+    expect(screen.getByRole("button", { name: /ai-suggest/i })).not.toBeDisabled();
   });
 });

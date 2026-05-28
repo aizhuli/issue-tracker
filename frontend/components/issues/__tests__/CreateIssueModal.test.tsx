@@ -20,7 +20,6 @@ const mockIssue: IssueFull = {
   reporter: { id: "user-1", name: "Alice", email: "alice@example.com" },
   labels: [],
   acceptanceCriteria: null,
-  acceptanceCriteriaAiSuggested: false,
   commentCount: 0,
   createdAt: "2024-01-01T00:00:00Z",
   updatedAt: "2024-01-01T00:00:00Z",
