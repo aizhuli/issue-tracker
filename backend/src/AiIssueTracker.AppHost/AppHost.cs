@@ -17,11 +17,18 @@ var sessionCookiePassword = builder.AddParameter(
     "dev-session-cookie-password-must-be-at-least-32-chars-long-for-iron-session",
     secret: true);
 
+var llmBaseUrl = builder.AddParameter("llm-base-url", string.Empty);
+var llmModel = builder.AddParameter("llm-model", string.Empty);
+var llmApiKey = builder.AddParameter("llm-api-key", string.Empty, secret: true);
+
 var api = builder
     .AddProject<Projects.AiIssueTracker_Api>("api")
     .WithReference(issueTrackerDb)
     .WaitFor(issueTrackerDb)
-    .WithEnvironment("BffAuth__SharedSecret", bffSharedSecret);
+    .WithEnvironment("BffAuth__SharedSecret", bffSharedSecret)
+    .WithEnvironment("Llm__BaseUrl", llmBaseUrl)
+    .WithEnvironment("Llm__Model", llmModel)
+    .WithEnvironment("Llm__ApiKey", llmApiKey);
 
 builder
     .AddNpmApp("frontend", "../../../frontend", "dev")
