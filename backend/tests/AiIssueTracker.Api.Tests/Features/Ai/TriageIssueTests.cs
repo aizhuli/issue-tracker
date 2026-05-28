@@ -86,8 +86,7 @@ public class TriageIssueTests(TestFixture fixture) : IAsyncLifetime
         var project = MakeProject(200L, 100L, "happy-proj");
         var label   = MakeLabel(300L, 200L, "bug");
         var issue   = MakeIssue(400L, 200L, 100L, 1, "Something is broken");
-        var link    = new IssueLabel { IssueId = 400L, LabelId = 300L };
-        await fixture.Database.Save(user, project, label, issue, link);
+        await fixture.Database.Save(user, project, label, issue);
 
         fixture.ChatClient.RespondWithJson(
             """{"priority":"high","labels":["bug"],"acceptanceCriteria":"- [ ] It works"}""");
@@ -194,6 +193,7 @@ public class TriageIssueTests(TestFixture fixture) : IAsyncLifetime
 
         var problem = await response.Content.ReadFromJsonAsync<TestProblemDetails>(ct);
         problem!.ErrorCode.Should().Be("ai:triage:llm:invalid_response");
+        fixture.ChatClient.CallCount.Should().Be(2); // handler retries once on parse failure
     }
 
     // ── 5. LLM throws → 502 unavailable ──────────────────────────────────────
@@ -330,6 +330,9 @@ public class TriageIssueTests(TestFixture fixture) : IAsyncLifetime
         var project = MakeProject(209L, 109L, "live-proj");
         var issue   = MakeIssue(409L, 209L, 109L, 1, "DB Title", description: "DB description");
         await fixture.Database.Save(user, project, issue);
+
+        // This test checks prompt content, not response parsing — set an explicit fake response.
+        fixture.ChatClient.RespondWithJson("""{"priority":"medium","labels":[],"acceptanceCriteria":"AC text"}""");
 
         using var client = fixture.HttpClient.CreateUserClient(IdEncoding.Encode(109L));
         var response = await client.PostAsJsonAsync(

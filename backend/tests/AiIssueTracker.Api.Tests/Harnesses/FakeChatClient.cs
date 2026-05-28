@@ -15,6 +15,9 @@ public sealed class FakeChatClient : IChatClient
     /// <summary>The messages passed to the most recent <see cref="GetResponseAsync"/> call.</summary>
     public IEnumerable<ChatMessage>? LastMessages { get; private set; }
 
+    /// <summary>Total number of times <see cref="GetResponseAsync"/> was called, including throwing calls.</summary>
+    public int CallCount { get; private set; }
+
     // ── Configuration helpers ────────────────────────────────────────────────
 
     /// <summary>Sets the next response text. The handler receives this string as-is and parses it as JSON.</summary>
@@ -31,6 +34,7 @@ public sealed class FakeChatClient : IChatClient
         _nextJson = DefaultJson;
         _throwOnNextCall = false;
         LastMessages = null;
+        CallCount = 0;
     }
 
     // ── IChatClient ──────────────────────────────────────────────────────────
@@ -40,6 +44,7 @@ public sealed class FakeChatClient : IChatClient
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
+        CallCount++;
         LastMessages = messages.ToList();
 
         if (_throwOnNextCall)
