@@ -97,6 +97,7 @@ file static class ReasonPhrases
         404 => "Not Found",
         409 => "Conflict",
         422 => "Unprocessable Entity",
+        502 => "Bad Gateway",
         _ => "Error"
     };
 }

@@ -20,3 +20,6 @@ public sealed class ForbiddenDomainException(string message, string errorCode)
 
 public sealed class UnprocessableEntityException(string message, string errorCode)
     : DomainException(message, errorCode, StatusCodes.Status422UnprocessableEntity);
+
+public sealed class BadGatewayException(string message, string errorCode)
+    : DomainException(message, errorCode, StatusCodes.Status502BadGateway);
