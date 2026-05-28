@@ -9,6 +9,7 @@ using AiIssueTracker.Api.Common.Pagination;
 using AiIssueTracker.Api.Common.Validation;
 using AiIssueTracker.Api.Data;
 using AiIssueTracker.Api.Data.Entities;
+using AiIssueTracker.Api.Integrations.Llm;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using MediatR;
@@ -21,6 +22,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 
 builder.AddNpgsqlDbContext<AppDbContext>("issuetracker");
+
+builder.Services.Configure<LlmOptions>(builder.Configuration.GetSection(LlmOptions.SectionName));
+builder.AddLlmChatClient();
 
 builder.Services.AddIdFactory(builder.Configuration.GetValue("IdGenerator:GeneratorId", 0));
 

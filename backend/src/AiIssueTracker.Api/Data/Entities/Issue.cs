@@ -15,7 +15,6 @@ public class Issue
     public long ReporterId { get; set; }
     public User Reporter { get; set; } = null!;
     public string? AcceptanceCriteria { get; set; }    // 0–10_000, markdown
-    public bool AcceptanceCriteriaAiSuggested { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
     public DateTimeOffset? ClosedAt { get; set; }

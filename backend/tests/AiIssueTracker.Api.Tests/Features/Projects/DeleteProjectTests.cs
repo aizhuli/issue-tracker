@@ -66,8 +66,8 @@ public class DeleteProjectTests(TestFixture fixture) : IAsyncLifetime
         var project = MakeProject(200L, "cascade-project", "Cascade Project", 2L);
         await fixture.Database.Save(owner, project);
 
-        var issue1 = new Issue { Id = 10L, ProjectId = 200L };
-        var issue2 = new Issue { Id = 11L, ProjectId = 200L };
+        var issue1 = new Issue { Id = 10L, ProjectId = 200L, ReporterId = 2L, Number = 1 };
+        var issue2 = new Issue { Id = 11L, ProjectId = 200L, ReporterId = 2L, Number = 2 };
         var label1 = new Label { Id = 20L, ProjectId = 200L };
         await fixture.Database.Save(issue1, issue2, label1);
 

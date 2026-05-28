@@ -86,7 +86,7 @@ export function Sidebar() {
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: "8px 6px" }}>
-        <a
+        <Link
           href="/projects"
           style={{
             display: "flex",
@@ -104,7 +104,7 @@ export function Sidebar() {
         >
           <Icon name="folder" size={15} color="currentColor" />
           Projects
-        </a>
+        </Link>
       </nav>
 
       {/* User avatar + name */}

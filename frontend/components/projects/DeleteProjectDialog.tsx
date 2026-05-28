@@ -32,7 +32,9 @@ export function DeleteProjectDialog({
   // Reset state when dialog opens
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setConfirmName("");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError(null);
     }
   }, [open]);

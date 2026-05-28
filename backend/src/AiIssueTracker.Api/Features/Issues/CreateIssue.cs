@@ -130,7 +130,6 @@ public static class CreateIssue
                 AssigneeId = assigneeId,
                 ReporterId = currentUser.UserId,
                 AcceptanceCriteria = request.AcceptanceCriteria?.Trim(),
-                AcceptanceCriteriaAiSuggested = false,
                 CreatedAt = now,
                 UpdatedAt = now,
             };
@@ -193,7 +192,6 @@ public static class CreateIssue
                         il.Label.Color))
                     .ToArray(),
                 AcceptanceCriteria: loaded.AcceptanceCriteria,
-                AcceptanceCriteriaAiSuggested: loaded.AcceptanceCriteriaAiSuggested,
                 CommentCount: 0,
                 CreatedAt: loaded.CreatedAt,
                 UpdatedAt: loaded.UpdatedAt,

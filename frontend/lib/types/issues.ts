@@ -26,7 +26,6 @@ export type IssueFull = {
   reporter: UserSummary;
   labels: LabelDto[];
   acceptanceCriteria?: string | null;
-  acceptanceCriteriaAiSuggested: boolean;
   commentCount: number;
   createdAt: string;
   updatedAt: string;
@@ -62,4 +61,10 @@ export type LabelFullDto = {
   name: string;
   color: string;
   createdAt: string;
+};
+
+export type TriageSuggestion = {
+  priority: IssuePriority;
+  labels: LabelDto[];
+  acceptanceCriteria: string;
 };

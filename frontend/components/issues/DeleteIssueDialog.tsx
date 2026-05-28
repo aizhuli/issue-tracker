@@ -19,7 +19,9 @@ export function DeleteIssueDialog({ open, issue, projectSlug, onClose, onDeleted
 
   useEffect(() => {
     if (!open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setConfirmText("");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError(null);
     }
   }, [open]);

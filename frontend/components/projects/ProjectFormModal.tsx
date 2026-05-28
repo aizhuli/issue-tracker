@@ -171,11 +171,17 @@ export function ProjectFormModal({
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(project?.name ?? "");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSlug(project?.slug ?? "");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDescription(project?.description ?? "");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setErrors({});
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSlugStatus("idle");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSubmitting(false);
       slugTouched.current = false;
     }
@@ -195,8 +201,10 @@ export function ProjectFormModal({
     const parseResult = slugSchema.safeParse(slug);
     if (!parseResult.success) {
       if (slug.length === 0) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSlugStatus("idle");
       } else {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setSlugStatus("invalid_format");
       }
       return;

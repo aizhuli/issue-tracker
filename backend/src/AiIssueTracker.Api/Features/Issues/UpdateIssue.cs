@@ -197,7 +197,6 @@ public static class UpdateIssue
                         Color: il.Label.Color))
                     .ToArray(),
                 AcceptanceCriteria: loaded.AcceptanceCriteria,
-                AcceptanceCriteriaAiSuggested: loaded.AcceptanceCriteriaAiSuggested,
                 CommentCount: commentCount,
                 CreatedAt: loaded.CreatedAt,
                 UpdatedAt: loaded.UpdatedAt,

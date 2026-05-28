@@ -136,3 +136,47 @@ dotnet ef database update `
 |------|---------|
 | `/openapi/v1.json` | Raw OpenAPI spec |
 | `/scalar/v1` | Interactive Scalar UI (pre-fills `X-Bff-Secret`) |
+
+---
+
+## LLM Connection (AI Triage)
+
+The API requires `Llm:BaseUrl`, `Llm:Model`, and `Llm:ApiKey` to be configured before the AI triage endpoint works. These are **not** injected by Aspire — set them via user-secrets (preferred for local dev) or environment variables.
+
+### Local dev — Ollama
+
+```powershell
+cd backend/src/AiIssueTracker.Api
+dotnet user-secrets set "Llm:BaseUrl" "http://localhost:11434/v1"
+dotnet user-secrets set "Llm:Model"   "qwen3.5:latest"
+dotnet user-secrets set "Llm:ApiKey"  "ollama"
+```
+
+Ollama must be running locally with the model pulled:
+
+```powershell
+ollama pull qwen3.5:latest
+ollama serve   # if not already running as a service
+```
+
+### Cloud provider (OpenRouter / Together / Groq / OpenAI)
+
+```powershell
+cd backend/src/AiIssueTracker.Api
+dotnet user-secrets set "Llm:BaseUrl" "https://openrouter.ai/api/v1"
+dotnet user-secrets set "Llm:Model"   "<provider-model-id>"
+dotnet user-secrets set "Llm:ApiKey"  "<your-api-key>"
+```
+
+Set `Llm:TimeoutSeconds` to a lower value (e.g. `30`) for cloud endpoints; the dev default is `300` (suited for slow local models).
+
+### Config keys
+
+| Key | Default (appsettings.Development.json) | Notes |
+|-----|----------------------------------------|-------|
+| `Llm:BaseUrl` | `http://localhost:11434/v1` | OpenAI-compatible endpoint |
+| `Llm:Model` | `qwen3.5:latest` | Model identifier passed to the chat client |
+| `Llm:ApiKey` | `ollama` | Use `"ollama"` for local Ollama; real key for cloud |
+| `Llm:TimeoutSeconds` | `300` | Per-request LLM timeout in seconds |
+
+`Llm:BaseUrl` is required at startup — the API will throw `InvalidOperationException` if it is missing.
