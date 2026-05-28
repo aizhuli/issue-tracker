@@ -137,6 +137,10 @@ public static class TriageIssue
                 var response = await chatClient.GetResponseAsync(messages, options, cts.Token);
                 text = response.Text;
             }
+            catch (OperationCanceledException) when (cts.IsCancellationRequested && !ct.IsCancellationRequested)
+            {
+                throw new BadGatewayException("LLM service timed out.", "ai:triage:llm:unavailable");
+            }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 throw new BadGatewayException("LLM service is unavailable.", "ai:triage:llm:unavailable");
