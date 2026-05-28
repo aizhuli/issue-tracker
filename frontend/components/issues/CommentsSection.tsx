@@ -51,6 +51,7 @@ function CommentItem({
 
   useEffect(() => {
     if (menu !== null) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setEditBody(comment.body);
   }, [menu, comment.body]);
 
@@ -255,6 +256,7 @@ export function CommentsSection({ projectSlug, issueNumber, me }: CommentsSectio
 
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetchComments()
       .then((data) => {

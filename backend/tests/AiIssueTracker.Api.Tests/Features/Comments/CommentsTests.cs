@@ -81,7 +81,7 @@ public class CommentsTests(TestFixture fixture) : IAsyncLifetime
         using var client = fixture.HttpClient.CreateUserClient(IdEncoding.Encode(10L));
         var response = await client.PostAsJsonAsync(
             "/api/projects/cc-proj/issues/1/comments",
-            new { content = "Hello world" }, ct);
+            new { body = "Hello world" }, ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         var body = await response.Content.ReadFromJsonAsync<CommentDto>(ct);
@@ -174,7 +174,7 @@ public class CommentsTests(TestFixture fixture) : IAsyncLifetime
         using var client = fixture.HttpClient.CreateUserClient(IdEncoding.Encode(10L));
         var response = await client.PutAsJsonAsync(
             $"/api/projects/uc-proj/issues/1/comments/{IdEncoding.Encode(50L)}",
-            new { content = "Edited body" }, ct);
+            new { body = "Edited body" }, ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<CommentDto>(ct);
@@ -198,7 +198,7 @@ public class CommentsTests(TestFixture fixture) : IAsyncLifetime
         using var client = fixture.HttpClient.CreateUserClient(IdEncoding.Encode(11L));
         var response = await client.PutAsJsonAsync(
             $"/api/projects/uc403-proj/issues/1/comments/{IdEncoding.Encode(50L)}",
-            new { content = "Hacked" }, ct);
+            new { body = "Hacked" }, ct);
 
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         var problem = await response.Content.ReadFromJsonAsync<TestProblemDetails>(ct);

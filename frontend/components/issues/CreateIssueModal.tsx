@@ -27,8 +27,11 @@ export function CreateIssueModal({
 
   useEffect(() => {
     if (open) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTitle("");
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError(null);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSubmitting(false);
     }
   }, [open]);

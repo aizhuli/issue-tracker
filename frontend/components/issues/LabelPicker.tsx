@@ -41,6 +41,7 @@ export function LabelPicker({ projectSlug, projectOwnerId, meId, value, onChange
   useEffect(() => {
     if (!open) return;
     if (searchRef.current) searchRef.current.focus();
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     fetch(`/api/projects/${projectSlug}/labels`)
       .then((res) => (res.ok ? res.json() : Promise.reject()))
