@@ -14,6 +14,10 @@ public static class LlmRegistration
             var opts = sp.GetRequiredService<IOptions<LlmOptions>>().Value;
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
 
+            if (string.IsNullOrEmpty(opts.BaseUrl))
+                throw new InvalidOperationException(
+                    "Llm:BaseUrl is required. Set it via user-secrets or environment variables.");
+
             return new OpenAIClient(
                     new ApiKeyCredential(opts.ApiKey ?? "noop"),
                     new OpenAIClientOptions { Endpoint = new Uri(opts.BaseUrl!) })
