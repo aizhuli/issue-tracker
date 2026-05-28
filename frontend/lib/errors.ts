@@ -43,6 +43,11 @@ const ERROR_CODE_TO_FIELD: Record<string, string> = {
   "comments:comment:delete:forbidden": "_form",
   // Auth (for future use)
   "auth:session:missing": "_form",
+  // AI
+  "ai:triage:title:required_or_too_long": "title",
+  "ai:triage:description:too_long": "description",
+  "ai:triage:llm:unavailable": "_form",
+  "ai:triage:llm:invalid_response": "_form",
 };
 
 /**
