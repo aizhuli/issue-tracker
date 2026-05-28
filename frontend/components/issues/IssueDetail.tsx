@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Avatar } from "@/components/ui/Avatar";
@@ -86,6 +86,8 @@ export function IssueDetail({
   const [aiSuggesting, setAiSuggesting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const canDelete = me.id === issue.reporter.id || me.id === projectOwnerId;
 
   function enterEdit() {
@@ -101,6 +103,7 @@ export function IssueDetail({
   }
 
   function cancelEdit() {
+    abortRef.current?.abort();
     setFieldErrors({});
     setMode("read");
   }
@@ -146,6 +149,9 @@ export function IssueDetail({
 
   async function handleAiSuggest() {
     if (aiSuggesting || !editTitle.trim()) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setAiSuggesting(true);
     setFieldErrors({});
     try {
@@ -156,11 +162,12 @@ export function IssueDetail({
           title: editTitle.trim(),
           description: editDescription || null,
         }),
+        signal: controller.signal,
       });
 
       if (res.ok) {
         const s: TriageSuggestion = await res.json();
-        setEditPriority(s.priority as IssuePriority);
+        setEditPriority(s.priority);
         setEditLabels((prev) => {
           const existingIds = new Set(prev.map((l) => l.id));
           const merged = [...prev];
@@ -169,7 +176,9 @@ export function IssueDetail({
           }
           return merged;
         });
-        setEditAcceptanceCriteria(s.acceptanceCriteria);
+        if (s.acceptanceCriteria) {
+          setEditAcceptanceCriteria(s.acceptanceCriteria);
+        }
         return;
       }
 

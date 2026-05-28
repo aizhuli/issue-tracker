@@ -22,7 +22,9 @@ vi.mock("@/components/issues/AssigneePicker", () => ({
 }));
 
 vi.mock("@/components/issues/LabelPicker", () => ({
-  LabelPicker: () => <div data-testid="label-picker" />,
+  LabelPicker: ({ value }: { value: { id: string }[] }) => (
+    <div data-testid="label-picker" data-label-count={value.length} />
+  ),
 }));
 
 vi.mock("@/components/issues/CommentsSection", () => ({
@@ -321,6 +323,9 @@ describe("IssueDetail — edit mode", () => {
     // Acceptance criteria textarea should be overwritten
     const criteriaTextarea = screen.getByLabelText(/acceptance criteria/i) as HTMLTextAreaElement;
     expect(criteriaTextarea.value).toBe("- [ ] new criteria");
+
+    // LabelPicker should show 2 labels: 1 existing + 1 new (deduped, not 3)
+    expect(screen.getByTestId("label-picker")).toHaveAttribute("data-label-count", "2");
   });
 
   it("AI-suggest error leaves form unchanged", async () => {
