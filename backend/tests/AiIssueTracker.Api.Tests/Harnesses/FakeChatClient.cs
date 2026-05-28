@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 
@@ -16,8 +17,10 @@ public sealed class FakeChatClient : IChatClient
 
     // ── Configuration helpers ────────────────────────────────────────────────
 
+    /// <summary>Sets the next response text. The handler receives this string as-is and parses it as JSON.</summary>
     public void RespondWithJson(string json) => _nextJson = json;
 
+    /// <summary>Alias for <see cref="RespondWithJson"/>. Sets the next response text verbatim.</summary>
     public void RespondWithRaw(string text) => _nextJson = text;
 
     public void ThrowOnNextCall() => _throwOnNextCall = true;
@@ -37,7 +40,7 @@ public sealed class FakeChatClient : IChatClient
         ChatOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        LastMessages = messages;
+        LastMessages = messages.ToList();
 
         if (_throwOnNextCall)
         {
