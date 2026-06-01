@@ -917,13 +917,25 @@ body {
 }
 
 /* ============================================================
-   Responsive — viewbar compact
+   Responsive — viewbar two-row on mobile
    ============================================================ */
 .viewbar-search {
   display: flex;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 767px) {
+  .viewbar {
+    flex-wrap: wrap !important;
+    padding: 8px 12px 10px !important;
+    gap: 6px !important;
+    align-items: center;
+    align-content: center;
+  }
+  .viewbar-actions {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    width: 100%;
+  }
   .viewbar-search {
     display: none;
   }
