@@ -1,7 +1,6 @@
+using Anthropic;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
-using OpenAI;
-using System.ClientModel;
 
 namespace AiIssueTracker.Api.Integrations.Llm;
 
@@ -14,15 +13,12 @@ public static class LlmRegistration
             var opts = sp.GetRequiredService<IOptions<LlmOptions>>().Value;
             var loggerFactory = sp.GetRequiredService<ILoggerFactory>();
 
-            if (string.IsNullOrEmpty(opts.BaseUrl))
-                throw new InvalidOperationException(
-                    "Llm:BaseUrl is required. Set it via user-secrets or environment variables.");
+            var client = string.IsNullOrEmpty(opts.ApiKey)
+                ? new AnthropicClient()
+                : new AnthropicClient { ApiKey = opts.ApiKey };
 
-            return new OpenAIClient(
-                    new ApiKeyCredential(opts.ApiKey ?? "noop"),
-                    new OpenAIClientOptions { Endpoint = new Uri(opts.BaseUrl!) })
-                .GetChatClient(opts.Model)
-                .AsIChatClient()
+            return client
+                .AsIChatClient(opts.Model ?? "claude-opus-4-7")
                 .AsBuilder()
                 .UseLogging(loggerFactory)
                 .Build();
