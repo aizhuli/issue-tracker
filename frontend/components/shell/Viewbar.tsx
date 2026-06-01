@@ -44,8 +44,8 @@ export function Viewbar({ title, search, actions }: ViewbarProps) {
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
         {search !== undefined && (
           <label
+            className="viewbar-search"
             style={{
-              display: "flex",
               alignItems: "center",
               gap: 5,
               background: "var(--surface-2)",

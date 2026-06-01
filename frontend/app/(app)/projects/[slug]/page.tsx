@@ -156,6 +156,15 @@ export default function ProjectBoardPage() {
   const toastCounterRef = useRef(0);
 
   const [activeIssue, setActiveIssue] = useState<IssueSummary | null>(null);
+  const [mobileTab, setMobileTab] = useState<IssueStatus>("backlog");
+
+  // Reset mobileTab if the active tab is no longer in visibleStatuses (e.g. Done hidden)
+  useEffect(() => {
+    const visible: IssueStatus[] = filters.showDone ? ALL_STATUSES : ACTIVE_STATUSES;
+    if (!visible.includes(mobileTab)) {
+      setMobileTab("backlog");
+    }
+  }, [filters.showDone, mobileTab]);
 
   // Apply grabbing cursor globally while dragging so it persists over any element
   useEffect(() => {
@@ -951,6 +960,7 @@ export default function ProjectBoardPage() {
 
       {/* Board */}
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        {/* Desktop: all columns side-by-side (hidden on mobile via CSS) */}
         <div className="board-row">
           {visibleStatuses.map((status) => {
             const col = boardState[status];
@@ -968,6 +978,55 @@ export default function ProjectBoardPage() {
               />
             );
           })}
+        </div>
+
+        {/* Mobile: single column + tab switcher (hidden on desktop via CSS) */}
+        <div className="board-mobile-view">
+          <div className="board-tabs">
+            {visibleStatuses.map((status) => (
+              <button
+                key={status}
+                type="button"
+                className={`board-tab${mobileTab === status ? " board-tab--active" : ""}`}
+                onClick={() => setMobileTab(status)}
+              >
+                {COLUMN_LABELS[status]}
+                {boardState[status].items.length > 0 && (
+                  <span
+                    style={{
+                      background: "var(--surface-2)",
+                      border: "1px solid var(--border-2)",
+                      borderRadius: 999,
+                      padding: "0 5px",
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: "var(--ink-3)",
+                    }}
+                  >
+                    {boardState[status].items.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+          <div className="board-mobile-col">
+            {(() => {
+              const col = boardState[mobileTab] ?? { items: [], nextPageToken: null, loading: false };
+              return (
+                <BoardColumn
+                  key={`mobile-${mobileTab}`}
+                  status={mobileTab}
+                  label={COLUMN_LABELS[mobileTab]}
+                  items={col.items}
+                  loading={col.loading}
+                  nextPageToken={col.nextPageToken}
+                  onLoadMore={() => handleLoadMore(mobileTab)}
+                  onCardOpen={handleCardOpen}
+                  onStatusChange={handleStatusChange}
+                />
+              );
+            })()}
+          </div>
         </div>
 
         <DragOverlay dropAnimation={null}>

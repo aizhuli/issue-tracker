@@ -1,4 +1,6 @@
-import { ReactNode } from "react";
+"use client";
+
+import { ReactNode, useState } from "react";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { Topbar } from "@/components/shell/Topbar";
 
@@ -7,6 +9,8 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div
       style={{
@@ -16,7 +20,16 @@ export function AppShell({ children }: AppShellProps) {
         background: "var(--paper)",
       }}
     >
-      <Sidebar />
+      {/* Mobile scrim — only visible when sidebar is open on small screens */}
+      {sidebarOpen && (
+        <div
+          className="sidebar-scrim"
+          onClick={() => setSidebarOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main column */}
       <div
@@ -28,7 +41,7 @@ export function AppShell({ children }: AppShellProps) {
           overflow: "hidden",
         }}
       >
-        <Topbar />
+        <Topbar onMenuClick={() => setSidebarOpen((v) => !v)} />
 
         {/* Scrollable content area */}
         <main

@@ -106,6 +106,7 @@ export function Modal({ open, onClose, labelledBy, className, children }: ModalP
 
       {/* Centered wrapper — positions the card; stops clicks from reaching scrim */}
       <div
+        className="modal-wrapper"
         style={{
           position: "fixed",
           inset: 0,
@@ -123,7 +124,7 @@ export function Modal({ open, onClose, labelledBy, className, children }: ModalP
           aria-labelledby={labelledBy}
           tabIndex={-1}
           onClick={(e) => e.stopPropagation()}
-          className={className}
+          className={`modal-card${className ? ` ${className}` : ""}`}
           style={{
             pointerEvents: "auto",
             background: "var(--surface)",
