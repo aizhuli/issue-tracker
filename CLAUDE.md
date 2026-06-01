@@ -15,7 +15,7 @@ The product is meant for demo/teaching. Optimize for clarity and a clean vertica
 |------------------|---------------------------------------------------------------|
 | Backend API      | ASP.NET Core (.NET 10) — Minimal APIs                         |
 | Orchestration    | .NET Aspire (AppHost + ServiceDefaults)                       |
-| Persistence      | EF Core 9 + Npgsql (PostgreSQL)                               |
+| Persistence      | EF Core 10 + Npgsql (PostgreSQL)                              |
 | Mediator         | MediatR (request/response + validation pipeline)              |
 | Validation       | FluentValidation (backend) + Zod (frontend)                   |
 | IDs              | IdGen → `long` PK → Crockford Base32 for public surfaces      |
@@ -27,11 +27,7 @@ The product is meant for demo/teaching. Optimize for clarity and a clean vertica
 | Testing (BE)     | xUnit + Testcontainers (PostgreSQL) via harness pattern       |
 | Testing (FE)     | Vitest + React Testing Library; Playwright for E2E (optional) |
 | LLM SDK          | `Microsoft.Extensions.AI` over the `OpenAI` provider          |
-| LLM host         | OpenAI-compatible endpoint (provider / model TBD)             |
-
-### Open decisions
-
-- **LLM hosting**: local Ollama vs cloud (OpenRouter / Together / Groq) vs self-hosted vLLM. Anything below ~30B parameters tends to fail multi-tool agentic loops — the PR-reviewer feature constrains the choice. Decide before implementing the PR reviewer slice.
+| LLM host         | Ollama (local dev); configurable via `LlmOptions` / user secrets for any OpenAI-compatible endpoint |
 
 ---
 
@@ -41,8 +37,8 @@ The product is meant for demo/teaching. Optimize for clarity and a clean vertica
 
 - **User** — `email` (unique, login), `password_hash`, `name`, `avatar?`. Anyone can create projects, issues, take work, and comment. No "project membership" concept.
 - **Project** — `slug`, `name`, `description?`, `owner: User`. Owns its own set of labels.
-- **Issue** — `title` (≤200), `description?` (markdown), `status` (enum), `priority` (enum), `assignee?: User`, `reporter: User` (auto), `labels: Label[]`, `acceptance_criteria?` (markdown, may be AI-suggested), `created_at`, `updated_at`, `closed_at?`.
-- **Label** — `name` (unique within project, case-insensitive), `color`. M:N to Issue.
+- **Issue** — `title` (≤200), `description?` (markdown), `status` (enum), `priority` (enum), `assignee?: User`, `reporter: User` (auto), `labels: Label[]`, `acceptance_criteria?` (markdown), `created_at`, `updated_at`, `closed_at?`.
+- **Label** — `name` (unique within project, case-insensitive), `color`. M:N to Issue via `IssueLabel`.
 - **Comment** — `author: User`, `body` (markdown), `created_at`, `updated_at`. Ordered ASC by `created_at`.
 
 ### Enums
@@ -61,15 +57,14 @@ Status transitions: linear `backlog → todo → in-progress → in-review → d
 - `closed_at` is set when transitioning to `done`; cleared on any transition out of `done`.
 - `Label.name` is unique within a project (case-insensitive).
 - A comment can only be edited or deleted by its author.
-- AI-suggested `acceptance_criteria` is marked with `ai_suggested = true` until the user accepts or edits it.
 
 ### Use cases (the seven slices that have to work end-to-end)
 
 1. **Quick create** — one-field form, `POST /api/projects/{slug}/issues` with title only.
-2. **AI triage** — `POST /api/issues/{id}/ai/triage` returns suggested priority/labels/acceptance criteria; the user applies or edits.
+2. **AI triage** — `POST /api/projects/{slug}/issues/{number}/ai/triage` returns suggested priority/labels/acceptance criteria; the user applies or edits.
 3. **Manual triage + assign** — set priority/labels/criteria/assignee, move to `todo`.
 4. **Work the issue** — status transitions + comments + PR URL attachment.
-5. **AI PR review** — `POST /api/issues/{id}/ai/review-pr` runs a tool-using agent that writes a review comment tied to the criteria.
+5. **AI PR review** — `POST /api/projects/{slug}/issues/{number}/ai/review-pr` runs a tool-using agent that writes a review comment tied to the criteria.
 6. **Search & filter** — list with `status`, `assignee`, `labels`, text search on `title`/`description`, token pagination.
 7. **Close** — transition to `done` (or out of it), close timestamp managed automatically.
 
@@ -86,25 +81,26 @@ Namespace root: `AiIssueTracker.Api`.
 ```text
 backend/src/AiIssueTracker.Api/
 ├── Features/
-│   ├── Auth/                  # Register, Login, RefreshToken, Me
-│   ├── Projects/              # Create, Get, List, UpdateLabels
-│   ├── Issues/                # Create, Get, List, Update, ChangeStatus, Assign
-│   ├── Comments/              # CreateComment, UpdateComment, DeleteComment
-│   └── Ai/                    # TriageIssue, ReviewPullRequest
+│   ├── Auth/                  # Login, Register, Me, SearchUsers
+│   ├── Projects/              # Create, Get, List, Update, Delete, SlugAvailability
+│   │   └── Labels/            # CreateLabel, ListLabels, UpdateLabel, DeleteLabel
+│   ├── Issues/                # Create, Get, List, Update, Delete, ChangeStatus, ChangeAssignee
+│   ├── Comments/              # CreateComment, UpdateComment, DeleteComment, ListComments
+│   └── Ai/                    # TriageIssue (ReviewPullRequest — not yet implemented)
 ├── Common/
-│   ├── Auth/                  # BffAuthHandler, ICurrentUser, password hashing, claims extractors
+│   ├── Auth/                  # BffAuthenticationHandler, ICurrentUser, PasswordHashing, AuthPolicies
 │   ├── Exceptions/            # DomainException + GlobalExceptionHandler
-│   ├── Http/                  # IEndpoint contract + extension methods
-│   ├── Identity/              # IdFactory (IdGen wrapper) + Base32Encoder
-│   ├── Pagination/            # LimitOffsetPaging (AIP-158)
+│   ├── Http/                  # IEndpoint contract
+│   ├── Identity/              # IdFactory (IdGen wrapper) + IdEncoding (Base32)
+│   ├── OpenApi/               # BffSecuritySchemeTransformer
+│   ├── Pagination/            # LimitOffsetPaging, PageResponse, PagingOptions
 │   └── Validation/            # ValidationBehavior (MediatR pipeline)
 ├── Data/
 │   ├── AppDbContext.cs
-│   ├── Entities/              # POCOs — User, Project, Issue, Label, Comment
+│   ├── Entities/              # User, Project, Issue, Label, IssueLabel, Comment
 │   └── Migrations/
 ├── Integrations/
-│   ├── GitHub/                # GitHubClient — diff/files/metadata fetchers
-│   └── Llm/                   # IChatClient registration + prompt templates
+│   └── Llm/                   # LlmOptions, LlmRegistration (IChatClient wiring)
 └── Program.cs
 ```
 
@@ -121,7 +117,7 @@ Resources wired in AppHost:
 - **PostgreSQL** container (with pgAdmin in dev).
 - **AiIssueTracker.Api** project, depends on Postgres.
 - **frontend** (Next.js) as an `AddNpmApp(...)` resource pointing at `frontend/`, depends on the API.
-- **LLM endpoint** as a connection string parameter — local Ollama container in dev, or external URL via configuration.
+- **LLM endpoint** — local Ollama in dev, configurable via `LlmOptions` / user secrets.
 
 ### Next.js BFF
 
@@ -129,7 +125,7 @@ Resources wired in AppHost:
 frontend/
 ├── app/
 │   ├── (auth)/                 # login / register pages
-│   ├── projects/[slug]/...     # project + issue UI
+│   ├── (app)/projects/[slug]/  # project + issue UI
 │   └── api/                    # BFF route handlers — proxy to ASP.NET
 ├── components/
 ├── lib/
@@ -143,7 +139,7 @@ frontend/
 
 **Next.js 16 caveat (important):** `create-next-app` ships `frontend/AGENTS.md` warning that Next.js 16 has API/convention/file-structure breaking changes vs. older training data. Before writing any frontend code, consult `frontend/node_modules/next/dist/docs/` for the version-correct patterns (router, caching directives, server actions, etc.). Don't trust pre-Next-16 muscle memory.
 
-**BFF passthrough rule:** route handlers under `app/api/*` forward the request to ASP.NET, attaching the JWT from the session. They never validate, never reshape payloads, and pass ProblemDetails responses through unchanged. The only logic in the BFF is session management.
+**BFF passthrough rule:** route handlers under `app/api/*` forward the request to ASP.NET, attaching the session headers (`X-Bff-Secret`, `X-User-Id`). They never validate, never reshape payloads, and pass ProblemDetails responses through unchanged. The only logic in the BFF is session management.
 
 ---
 
@@ -173,16 +169,16 @@ Passwords are hashed with ASP.NET's `PasswordHasher<User>` (PBKDF2). No `Microso
 
 ## AI Features
 
-### 1. Triage (single-shot)
+### 1. Triage (single-shot) — implemented
 
-- Endpoint: `POST /api/issues/{id}/ai/triage` → returns `{ priority, labels: string[], acceptanceCriteria }`.
+- Endpoint: `POST /api/projects/{slug}/issues/{number}/ai/triage` → returns `{ priority, labels: string[], acceptanceCriteria }`.
 - Prompt context: project name + description + **the project's label set** (so the model can only choose from real labels) + the issue title + description.
 - Output is parsed JSON. Validate against the project's labels before returning.
 - No DB writes — the user reviews and applies via existing update endpoints.
 
-### 2. PR Reviewer (tool-using agent)
+### 2. PR Reviewer (tool-using agent) — not yet implemented
 
-- Endpoint: `POST /api/issues/{id}/ai/review-pr` with `{ pullRequestUrl }`.
+- Endpoint: `POST /api/projects/{slug}/issues/{number}/ai/review-pr` with `{ pullRequestUrl }`.
 - Implemented with `Microsoft.Extensions.AI`'s tool-calling loop. The agent has four custom functions:
   - `fetch_pr_metadata(url)` → title, description, author, base/head refs.
   - `fetch_pr_diff(url)` → unified diff.
@@ -190,8 +186,7 @@ Passwords are hashed with ASP.NET's `PasswordHasher<User>` (PBKDF2). No `Microso
   - `fetch_file_content(url, path)` → full file content from the PR's head ref.
 - System prompt anchors the review to the issue's `acceptance_criteria`. Output is a review comment that explicitly maps findings to each criterion.
 - The review is persisted as a `Comment` on the issue with `author = "AI"` (a reserved system user) and `body` containing the review.
-
-GitHub access uses an unauthenticated client for public repos in MVP. Token-based auth (PAT in `appsettings.json`) is an easy upgrade — gated behind `GitHubOptions`.
+- GitHub access uses an unauthenticated client for public repos in MVP. Token-based auth (PAT via `GitHubOptions` / user secrets) is an easy upgrade.
 
 ---
 
@@ -246,7 +241,7 @@ The `.claude/skills/` directory holds project-specific skills. **Always check wh
 | `requirements`, `mvp-scope`      | Negotiating scope with the user                           |
 | `design-brainstorming`           | Anything creative — features, flows, behavior             |
 | `implementation-planning`        | Turning a design into a checkbox plan for parallel agents |
-| `spec-maintenance`               | Keeping `docs/designs/*.md` honest as the code drifts     |
+| `spec-maintenance`               | Keeping `docs/specs/*.md` honest as the code drifts       |
 | `ui-design`                      | Writing ANY frontend component or page                    |
 | `run-project`                    | Starting, building, or testing the project (Aspire, standalone, migrations) |
 
@@ -257,21 +252,6 @@ The kit also ships skills under `dotnet-claude-kit:*` (build-fix, code-review, e
 ## Development Workflow
 
 > Working directory is `E:\ai-issue-tracker`. Shell is PowerShell.
-
-### One-time setup (not yet executed)
-
-```powershell
-dotnet new sln -n AiIssueTracker
-
-dotnet new web      -n AiIssueTracker.Api             -o backend/src/AiIssueTracker.Api
-dotnet new xunit    -n AiIssueTracker.Api.Tests       -o backend/tests/AiIssueTracker.Api.Tests
-dotnet new aspire-apphost          -n AiIssueTracker.AppHost          -o backend/src/AiIssueTracker.AppHost
-dotnet new aspire-servicedefaults  -n AiIssueTracker.ServiceDefaults  -o backend/src/AiIssueTracker.ServiceDefaults
-
-dotnet sln add (Get-ChildItem -Recurse -Filter *.csproj)
-
-npx create-next-app@latest frontend --typescript --app --tailwind --eslint --no-src-dir
-```
 
 ### Day-to-day
 
@@ -293,21 +273,17 @@ cd frontend; npm test         # vitest
 cd frontend; npm run lint
 ```
 
-### Working order
+### Current state
 
-The recommended slice-by-slice order, each shippable on its own:
-
-1. Aspire + Postgres + API skeleton + `/health`.
-2. `Users` (register, login, `me`) — `BffAuth` scheme, no JWT.
-3. Next.js BFF auth wiring (iron-session cookie, login form).
-4. `Projects` (create, get, list) and `Labels` (create, list, delete).
-5. `Issues` quick-create + get + list (with token pagination + filters).
-6. Status transitions + assignment + comments.
-7. **AI Triage** (single-shot endpoint).
-8. **AI PR Reviewer** (tool-using agent).
-9. Polish: search, closed-issue filter, AI badge for `ai_suggested`.
-
-Don't start a later step until the earlier ones have passing component tests.
+1. ✅ Aspire + Postgres + API skeleton + `/health`
+2. ✅ `Users` (register, login, `me`, search) — `BffAuth` scheme
+3. ✅ Next.js BFF auth wiring (iron-session cookie, login/register forms)
+4. ✅ `Projects` (create, get, list, update, delete) + `Labels` (create, list, update, delete)
+5. ✅ `Issues` (create, get, list, update, delete) with token pagination + filters
+6. ✅ Status transitions + assignment + comments
+7. ✅ **AI Triage** (single-shot endpoint)
+8. ⬜ **AI PR Reviewer** (tool-using agent) — next to build
+9. ⬜ Polish: search, closed-issue filter
 
 ---
 
@@ -320,5 +296,3 @@ Don't start a later step until the earlier ones have passing component tests.
 - File attachments on issues or comments.
 - OAuth, SSO, password reset email flow.
 - Caching (HybridCache / Redis), background workers, messaging.
-
-These are easy to add later if any of them comes up — but they are **not** on the MVP path.
