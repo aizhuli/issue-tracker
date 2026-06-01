@@ -229,7 +229,7 @@ export function IssueDetail({
           style={{
             flex: 1,
             overflowY: "auto",
-            padding: "20px 20px 0",
+            padding: "20px 20px 20px",
             display: "flex",
             flexDirection: "column",
             gap: 16,
