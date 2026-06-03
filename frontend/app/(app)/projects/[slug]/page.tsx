@@ -156,6 +156,27 @@ export default function ProjectBoardPage() {
   const toastCounterRef = useRef(0);
 
   const [activeIssue, setActiveIssue] = useState<IssueSummary | null>(null);
+  const [mobileTab, setMobileTab] = useState<IssueStatus>("backlog");
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Sync isMobile with the viewport so only one board view renders at a time,
+  // preventing duplicate dnd-kit droppable/draggable IDs that cause the
+  // drag-overlay position jump and the broken backlog droppable.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    setIsMobile(mq.matches);
+    const handleChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handleChange);
+    return () => mq.removeEventListener("change", handleChange);
+  }, []);
+
+  // Reset mobileTab if the active tab is no longer in visibleStatuses (e.g. Done hidden)
+  useEffect(() => {
+    const visible: IssueStatus[] = filters.showDone ? ALL_STATUSES : ACTIVE_STATUSES;
+    if (!visible.includes(mobileTab)) {
+      setMobileTab("backlog");
+    }
+  }, [filters.showDone, mobileTab]);
 
   // Apply grabbing cursor globally while dragging so it persists over any element
   useEffect(() => {
@@ -949,26 +970,80 @@ export default function ProjectBoardPage() {
         actions={viewbarActions}
       />
 
-      {/* Board */}
+      {/* Board — only one view renders at a time to avoid duplicate dnd-kit IDs */}
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="board-row">
-          {visibleStatuses.map((status) => {
-            const col = boardState[status];
-            return (
-              <BoardColumn
-                key={status}
-                status={status}
-                label={COLUMN_LABELS[status]}
-                items={col.items}
-                loading={col.loading}
-                nextPageToken={col.nextPageToken}
-                onLoadMore={() => handleLoadMore(status)}
-                onCardOpen={handleCardOpen}
-                onStatusChange={handleStatusChange}
-              />
-            );
-          })}
-        </div>
+        {/* Desktop: all columns side-by-side */}
+        {!isMobile && (
+          <div className="board-row">
+            {visibleStatuses.map((status) => {
+              const col = boardState[status];
+              return (
+                <BoardColumn
+                  key={status}
+                  status={status}
+                  label={COLUMN_LABELS[status]}
+                  items={col.items}
+                  loading={col.loading}
+                  nextPageToken={col.nextPageToken}
+                  onLoadMore={() => handleLoadMore(status)}
+                  onCardOpen={handleCardOpen}
+                  onStatusChange={handleStatusChange}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* Mobile: single column with tab switcher */}
+        {isMobile && (
+          <div className="board-mobile-view" style={{ display: "flex" }}>
+            <div className="board-tabs">
+              {visibleStatuses.map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  className={`board-tab${mobileTab === status ? " board-tab--active" : ""}`}
+                  onClick={() => setMobileTab(status)}
+                >
+                  {COLUMN_LABELS[status]}
+                  {boardState[status].items.length > 0 && (
+                    <span
+                      style={{
+                        background: "var(--surface-2)",
+                        border: "1px solid var(--border-2)",
+                        borderRadius: 999,
+                        padding: "0 5px",
+                        fontSize: 10,
+                        fontWeight: 600,
+                        color: "var(--ink-3)",
+                      }}
+                    >
+                      {boardState[status].items.length}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <div className="board-mobile-col">
+              {(() => {
+                const col = boardState[mobileTab] ?? { items: [], nextPageToken: null, loading: false };
+                return (
+                  <BoardColumn
+                    key={`mobile-${mobileTab}`}
+                    status={mobileTab}
+                    label={COLUMN_LABELS[mobileTab]}
+                    items={col.items}
+                    loading={col.loading}
+                    nextPageToken={col.nextPageToken}
+                    onLoadMore={() => handleLoadMore(mobileTab)}
+                    onCardOpen={handleCardOpen}
+                    onStatusChange={handleStatusChange}
+                  />
+                );
+              })()}
+            </div>
+          </div>
+        )}
 
         <DragOverlay dropAnimation={null}>
           {activeIssue ? (

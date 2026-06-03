@@ -12,7 +12,12 @@ type MeResponse = {
   userId?: string;
 };
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const isProjectsActive = pathname.startsWith("/projects");
 
@@ -29,6 +34,7 @@ export function Sidebar() {
 
   return (
     <aside
+      className={`sidebar${isOpen ? " sidebar--open" : ""}`}
       style={{
         width: "var(--sb-w)",
         height: "100vh",
@@ -42,47 +48,69 @@ export function Sidebar() {
       }}
     >
       {/* Logo / brand */}
-      <Link
-        href="/projects"
+      <div
         style={{
           padding: "16px 14px 12px",
           borderBottom: "1px solid var(--border-2)",
           display: "flex",
           alignItems: "center",
           gap: 8,
-          textDecoration: "none",
-          transition: "opacity 120ms",
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.75"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
       >
-        <div
+        <Link
+          href="/projects"
+          onClick={onClose}
           style={{
-            width: 26,
-            height: 26,
-            background: "var(--accent-1)",
-            borderRadius: 7,
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
+            gap: 8,
+            textDecoration: "none",
+            transition: "opacity 120ms",
+            flex: 1,
           }}
+          onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.75"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
         >
-          <span
+          <div
             style={{
-              fontWeight: 800,
-              fontSize: 13,
-              color: "var(--accent-1-ink)",
-              lineHeight: 1,
+              width: 26,
+              height: 26,
+              background: "var(--accent-1)",
+              borderRadius: 7,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
             }}
           >
-            A
+            <span
+              style={{
+                fontWeight: 800,
+                fontSize: 13,
+                color: "var(--accent-1-ink)",
+                lineHeight: 1,
+              }}
+            >
+              A
+            </span>
+          </div>
+          <span className="sb-ws-name" style={{ color: "var(--ink-0)" }}>
+            Aigo
           </span>
-        </div>
-        <span className="sb-ws-name" style={{ color: "var(--ink-0)" }}>
-          Aigo
-        </span>
-      </Link>
+        </Link>
+        {onClose && (
+          <button
+            onClick={onClose}
+            aria-label="Close menu"
+            className="topbar-menu-btn"
+            style={{ width: 28, height: 28 }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          </button>
+        )}
+      </div>
 
       {/* Nav */}
       <nav style={{ flex: 1, padding: "8px 6px" }}>

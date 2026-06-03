@@ -2,7 +2,11 @@
 
 import { useRouter } from "next/navigation";
 
-export function Topbar() {
+interface TopbarProps {
+  onMenuClick?: () => void;
+}
+
+export function Topbar({ onMenuClick }: TopbarProps) {
   const router = useRouter();
 
   async function handleLogout() {
@@ -17,12 +21,24 @@ export function Topbar() {
         borderBottom: "1px solid var(--border-2)",
         display: "flex",
         alignItems: "center",
-        justifyContent: "flex-end",
+        justifyContent: "space-between",
         padding: "0 16px",
         background: "var(--surface)",
         flexShrink: 0,
+        gap: 8,
       }}
     >
+      {/* Hamburger — visible only on tablet/mobile via CSS */}
+      <button
+        onClick={onMenuClick}
+        aria-label="Open menu"
+        className="topbar-menu-btn"
+      >
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M2 4.5h14M2 9h14M2 13.5h14" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/>
+        </svg>
+      </button>
+
       <button
         onClick={handleLogout}
         style={{

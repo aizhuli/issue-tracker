@@ -259,7 +259,9 @@ export function LabelPicker({ projectSlug, projectOwnerId, meId, value, onChange
             </span>
           ))
         )}
-        <Icon name="down" size={12} color="var(--ink-3)" style={{ marginLeft: "auto" }} />
+        <span style={{ marginLeft: "auto", display: "flex" }}>
+          <Icon name="down" size={12} color="var(--ink-3)" />
+        </span>
       </button>
 
       {open && (

@@ -684,11 +684,7 @@ body {
 /* ============================================================
    Issue detail — wide modal
    ============================================================ */
-.ai-modal--wide {
-  max-width: 720px;
-}
-
-.ai-modal--wide > * {
+.modal-card.ai-modal--wide {
   max-width: 720px;
   max-height: 80vh;
   overflow-y: auto;
@@ -768,6 +764,181 @@ body {
   border: none;
   border-top: 1px solid var(--border);
   margin: 1em 0;
+}
+
+/* ============================================================
+   Responsive — sidebar drawer
+   ============================================================ */
+.sidebar {
+  transition: transform 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (max-width: 1023px) {
+  .sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 500;
+    transform: translateX(-100%);
+  }
+  .sidebar--open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(24, 52, 42, 0.35);
+    z-index: 499;
+    animation: scrim-in 160ms ease-out both;
+  }
+}
+
+/* ============================================================
+   Responsive — topbar hamburger
+   ============================================================ */
+.topbar-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  color: var(--ink-2);
+  flex-shrink: 0;
+  transition: background 100ms, color 100ms;
+}
+.topbar-menu-btn:hover {
+  background: var(--surface-2);
+  color: var(--ink-0);
+}
+
+@media (max-width: 1023px) {
+  .topbar-menu-btn {
+    display: flex;
+  }
+}
+
+/* ============================================================
+   Responsive — modals fullscreen on mobile
+   ============================================================ */
+@media (max-width: 767px) {
+  .modal-wrapper {
+    align-items: flex-end !important;
+  }
+  .modal-card {
+    max-width: 100% !important;
+    width: 100% !important;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+    max-height: 92dvh !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* ============================================================
+   Responsive — board mobile tab switcher
+   ============================================================ */
+.board-mobile-view {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .board-row {
+    display: none;
+  }
+  .board-mobile-view {
+    display: flex;
+  }
+}
+
+.board-tabs {
+  display: flex;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0 12px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.board-tabs::-webkit-scrollbar { display: none; }
+
+.board-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 10px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-2);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 100ms;
+}
+.board-tab:hover { color: var(--ink-1); }
+.board-tab--active {
+  color: var(--ink-0);
+  border-bottom-color: var(--ink-0);
+}
+
+.board-mobile-col {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Make board-col fill width and expand naturally inside the mobile scrollable container */
+.board-mobile-col .board-col {
+  width: 100%;
+  flex-shrink: 0;
+  max-height: none;
+  overflow: visible;
+}
+.board-mobile-col .board-col__body {
+  overflow: visible;
+  flex: none;
+  min-height: auto;
+}
+
+/* ============================================================
+   Responsive — viewbar two-row on mobile
+   ============================================================ */
+.viewbar-search {
+  display: flex;
+}
+
+@media (max-width: 767px) {
+  .viewbar {
+    flex-wrap: wrap !important;
+    padding: 8px 12px 10px !important;
+    gap: 6px !important;
+    align-items: center;
+    align-content: center;
+  }
+  .viewbar-actions {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+    width: 100%;
+  }
+  .viewbar-search {
+    display: none;
+  }
 }
 
 /* ============================================================

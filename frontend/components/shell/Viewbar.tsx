@@ -15,8 +15,8 @@ interface ViewbarProps {
 export function Viewbar({ title, search, actions }: ViewbarProps) {
   return (
     <div
+      className="viewbar"
       style={{
-        height: "var(--viewbar-h)",
         borderBottom: "1px solid var(--border)",
         display: "flex",
         alignItems: "center",
@@ -25,6 +25,7 @@ export function Viewbar({ title, search, actions }: ViewbarProps) {
         background: "var(--surface)",
         flexShrink: 0,
         gap: 8,
+        minHeight: "var(--viewbar-h)",
       }}
     >
       {/* Left: title */}
@@ -41,11 +42,11 @@ export function Viewbar({ title, search, actions }: ViewbarProps) {
       </span>
 
       {/* Right: search + actions */}
-      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+      <div className="viewbar-actions" style={{ display: "flex", alignItems: "center", gap: 6 }}>
         {search !== undefined && (
           <label
+            className="viewbar-search"
             style={{
-              display: "flex",
               alignItems: "center",
               gap: 5,
               background: "var(--surface-2)",
