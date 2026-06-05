@@ -1,3 +1,4 @@
+using AiIssueTracker.Api.Common.Identity;
 using AiIssueTracker.Api.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,6 +34,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(x => x.Name).IsRequired().HasMaxLength(100);
             b.Property(x => x.Avatar).HasMaxLength(2048);
             b.Property(x => x.CreatedAt).IsRequired();
+
+            b.HasData(new User
+            {
+                Id = SystemUsers.AiUserId,
+                Email = "ai@system",
+                Name = "AI",
+                PasswordHash = "!",
+                CreatedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)
+            });
         });
 
         modelBuilder.Entity<Project>(b =>

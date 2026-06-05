@@ -233,9 +233,10 @@ interface CommentsSectionProps {
   projectSlug: string;
   issueNumber: number;
   me: { id: string; name: string; avatarUrl?: string | null };
+  refreshKey?: number;
 }
 
-export function CommentsSection({ projectSlug, issueNumber, me }: CommentsSectionProps) {
+export function CommentsSection({ projectSlug, issueNumber, me, refreshKey }: CommentsSectionProps) {
   const [comments, setComments] = useState<CommentDto[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -271,7 +272,8 @@ export function CommentsSection({ projectSlug, issueNumber, me }: CommentsSectio
     return () => {
       cancelled = true;
     };
-  }, [projectSlug, issueNumber]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectSlug, issueNumber, refreshKey]);
 
   async function handleLoadMore() {
     if (!nextPageToken || loadingMore) return;

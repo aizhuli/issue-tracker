@@ -9,12 +9,14 @@ using AiIssueTracker.Api.Common.Pagination;
 using AiIssueTracker.Api.Common.Validation;
 using AiIssueTracker.Api.Data;
 using AiIssueTracker.Api.Data.Entities;
+using AiIssueTracker.Api.Integrations.GitHub;
 using AiIssueTracker.Api.Integrations.Llm;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,6 +27,16 @@ builder.AddNpgsqlDbContext<AppDbContext>("issuetracker");
 
 builder.Services.Configure<LlmOptions>(builder.Configuration.GetSection(LlmOptions.SectionName));
 builder.AddLlmChatClient();
+
+builder.Services.Configure<GitHubOptions>(builder.Configuration.GetSection(GitHubOptions.SectionName));
+builder.Services.AddHttpClient<GitHubClient>((sp, client) =>
+{
+    client.BaseAddress = new Uri("https://api.github.com");
+    client.DefaultRequestHeaders.Add("User-Agent", "ai-issue-tracker");
+    var token = sp.GetRequiredService<IOptions<GitHubOptions>>().Value.Token;
+    if (!string.IsNullOrEmpty(token))
+        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
+});
 
 builder.Services.AddIdFactory(builder.Configuration.GetValue("IdGenerator:GeneratorId", 0));
 

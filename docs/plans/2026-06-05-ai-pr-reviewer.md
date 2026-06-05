@@ -11,7 +11,7 @@ Design: `docs/designs/2026-06-05-ai-pr-reviewer.md`
 ### Task 1.1: AI System User Seed
 
 - [ ] Create `Common/Identity/SystemUsers.cs` with `public static class SystemUsers { public const long AiUserId = 1L; }`
-- [ ] In `AppDbContext.OnModelCreating`, inside the `User` entity configuration block, call `b.HasData(new User { Id = SystemUsers.AiUserId, Email = "ai@system", Name = "AI", PasswordHash = "!", CreatedAt = new DateTimeOffset(2024, 1, 1, 0, 0, 0, TimeSpan.Zero) })`
+- [ ] In `AppDbContext.OnModelCreating`, inside the `User` entity configuration block, call `b.HasData(new User { Id = SystemUsers.AiUserId, Email = "ai@system", Name = "AI", PasswordHash = "!", CreatedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) })`
 - [ ] Run `dotnet ef migrations add SeedAiSystemUser --project backend/src/AiIssueTracker.Api --startup-project backend/src/AiIssueTracker.Api` to generate the migration
 - [ ] Verify the generated `Up` inserts the AI user row and `Down` deletes it
 
