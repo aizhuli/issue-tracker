@@ -178,10 +178,11 @@ public class ReviewPullRequestTests(TestFixture fixture) : IAsyncLifetime
     {
         var ct = TestContext.Current.CancellationToken;
 
+        var aiUser  = MakeAiUser();
         var user    = MakeUser(503L, "throw@example.com");
         var project = MakeProject(603L, 503L, "throw-proj");
         var issue   = MakeIssue(703L, 603L, 503L, 1, "Throw issue");
-        await fixture.Database.Save(user, project, issue);
+        await fixture.Database.Save(aiUser, user, project, issue);
 
         fixture.ChatClient.ThrowOnNextCall();
 

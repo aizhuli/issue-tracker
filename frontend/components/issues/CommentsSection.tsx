@@ -259,6 +259,8 @@ export function CommentsSection({ projectSlug, issueNumber, me, refreshKey }: Co
     let cancelled = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
+    setComments([]);
+    setNextPageToken(null);
     fetchComments()
       .then((data) => {
         if (cancelled) return;

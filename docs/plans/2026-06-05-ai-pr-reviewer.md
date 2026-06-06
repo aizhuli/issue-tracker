@@ -110,3 +110,45 @@ Follow the `vertical-slice-architecture` skill.
 - [x] `ReviewPr_InvalidUrl_Returns400WithInvalidError` — non-GitHub URL; verify 400 with `ai:pr_review:pull_request_url:invalid`
 
 **Files:** `backend/tests/AiIssueTracker.Api.Tests/Features/Ai/ReviewPullRequestTests.cs`
+
+---
+
+## Code Review Findings
+
+Findings from post-implementation review of the feature branch. Ranked most-severe first.
+
+### High
+
+- [x] **`response.Text` null → NullReferenceException, no comment saved** (`ReviewPullRequest.cs:122`)
+  `response.Text` is nullable in MEAI — null when the LLM ends its turn with only tool-call messages (e.g. MaximumIterationsPerRequest reached). Line 134 calls `reviewText.Trim()` without a null check; the resulting `NullReferenceException` is caught by the broad `catch (Exception)` and surfaces as 502 `ai:pr_review:llm:unavailable` with no comment persisted. Fix: null-check `response.Text` and throw a descriptive `BadGatewayException("LLM returned no review text.", ...)` before the Trim call.
+
+- [x] **`GetJsonDocumentAsync` catch-all swallows `EnsureSuccessAsync` exception** (`GitHubClient.cs:113`)
+  `EnsureSuccessAsync` throws `BadGatewayException("GitHub API error.")` for non-2xx responses. The enclosing `catch (Exception ex) when (ex is not OperationCanceledException)` catches it and re-throws `BadGatewayException("GitHub is unreachable.")`. Every 403 (rate limit), 404 (private repo), or 422 shows the wrong detail message. Fix: move `EnsureSuccessAsync` outside the try block (after `http.GetAsync` returns successfully), or catch only `HttpRequestException`.
+
+- [x] **`FetchChangedFilesAsync` silently truncates to 30 files** (`GitHubClient.cs:70`)
+  The GitHub `/pulls/{number}/files` endpoint defaults to 30 items per page. PRs with >30 changed files return an incomplete list with no truncation marker. Fix: add `?per_page=100` (GitHub's max for this endpoint) and append `\n[file list truncated — {n}/total shown]` when the response hits the limit, consistent with how `FetchDiffAsync` handles its cap.
+
+### Medium
+
+- [x] **GitHub `HttpClient` timeout mislabeled as `ai:pr_review:llm:unavailable`** (`GitHubClient.cs:104`)
+  `GetJsonDocumentAsync` does not catch `OperationCanceledException`, so a GitHub `HttpClient` timeout (`TaskCanceledException`) propagates to the handler where line 124 catches it as `when (!ct.IsCancellationRequested)` and emits `ai:pr_review:llm:unavailable`. Fix: catch `OperationCanceledException` in `GetJsonDocumentAsync` / `SendAsync` and rethrow as `BadGatewayException("GitHub timed out.", "ai:pr_review:github:fetch_failed")`.
+
+- [x] **No server-side LLM timeout; stalled agentic loop holds thread indefinitely** (`ReviewPullRequest.cs:121`)
+  The handler passes `ct` (the ASP.NET request token) directly to `GetResponseAsync`. If Ollama/OpenAI stalls mid-loop, the request blocks until the browser or BFF proxy times out. Fix: create a linked `CancellationTokenSource` with `CancelAfter(timeoutSeconds)` (mirroring `TriageIssue`), use it for the `GetResponseAsync` call, and distinguish timeout from user-cancel in the catch.
+
+- [x] **`FetchFileContentAsync` makes 2 GitHub API calls per file** (`GitHubClient.cs:85`)
+  Every `fetch_file_content` tool call re-fetches `/repos/{owner}/{repo}/pulls/{number}` solely to extract `head.sha`, doubling rate-limit consumption. Fix: expose `headSha` from `FetchMetadataAsync` (or cache it as a private field on the first metadata call) and pass it directly into `FetchFileContentAsync`.
+
+- [x] **No `AbortController` in `handleReviewPr`** (`IssueDetail.tsx:341`)
+  `handleReviewPr` uses a bare `fetch(...)` with no abort signal, unlike `handleSuggest` which uses `abortRef`. If the user navigates away during a 30+ second review, state setters fire on the unmounted component. Fix: create an `AbortController` (or reuse `abortRef`), pass its signal to `fetch`, and clean up in the `finally` block.
+
+### Low
+
+- [x] **Test 4 (LlmThrows) does not seed the AI system user — fragile FK invariant** (`ReviewPullRequestTests.cs:1003`)
+  `ResetAsync` truncates the `users` table, wiping the migration-seeded AI user. Test 4 skips `MakeAiUser()` and works today only because the LLM throws before `SaveChangesAsync`. Any future refactor that reaches `SaveChangesAsync` without the AI user present will produce an FK violation instead of the expected 502. Fix: either seed the AI user in all tests unconditionally, or add the AI user to a Respawn `TablesToIgnore` / re-seed it in `ResetAsync`.
+
+- [x] **`CommentsSection` shows stale comments during `refreshKey` refresh** (`CommentsSection.tsx:258`)
+  When `refreshKey` increments, the effect calls `setLoading(true)` then fetches page 1, but does not call `setComments([])` first. The old comment list (without the new AI review) is visible during the async gap. On a busy issue (>20 comments) the new AI review comment lands off-screen behind "Load more" after the reset to page 1. Fix: call `setComments([])` and `setNextPageToken(null)` before fetching when the trigger is a `refreshKey` change.
+
+- [x] **`MISSING_SESSION_RESPONSE` copy-pasted across all BFF route files** (`review-pr/route.ts:5`)
+  The object literal is duplicated in every route instead of being imported from a shared module. Fix: export it from `frontend/lib/bff-responses.ts` and import in each route.

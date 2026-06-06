@@ -5,11 +5,13 @@ using AiIssueTracker.Api.Common.Identity;
 using AiIssueTracker.Api.Data;
 using AiIssueTracker.Api.Data.Entities;
 using AiIssueTracker.Api.Integrations.GitHub;
+using AiIssueTracker.Api.Integrations.Llm;
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
 
 namespace AiIssueTracker.Api.Features.Ai;
 
@@ -56,7 +58,7 @@ public static class ReviewPullRequest
         }
     }
 
-    public class RequestHandler(AppDbContext db, IChatClient chatClient, GitHubClient gitHub, IdFactory idFactory)
+    public class RequestHandler(AppDbContext db, IChatClient chatClient, GitHubClient gitHub, IdFactory idFactory, IOptions<LlmOptions> llmOptions)
         : IRequestHandler<Request, ReviewDto>
     {
         public async Task<ReviewDto> Handle(Request request, CancellationToken ct)
@@ -115,13 +117,16 @@ public static class ReviewPullRequest
                 new(ChatRole.User, $"Please review this pull request: {request.PullRequestUrl}"),
             };
 
-            string reviewText;
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            cts.CancelAfter(TimeSpan.FromSeconds(llmOptions.Value.TimeoutSeconds));
+
+            string? reviewText;
             try
             {
-                var response = await agent.GetResponseAsync(messages, options, ct);
+                var response = await agent.GetResponseAsync(messages, options, cts.Token);
                 reviewText = response.Text;
             }
-            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+            catch (OperationCanceledException) when (cts.IsCancellationRequested && !ct.IsCancellationRequested)
             {
                 throw new BadGatewayException("LLM service timed out.", "ai:pr_review:llm:unavailable");
             }
@@ -129,6 +134,9 @@ public static class ReviewPullRequest
             {
                 throw new BadGatewayException("LLM service is unavailable.", "ai:pr_review:llm:unavailable");
             }
+
+            if (reviewText is null)
+                throw new BadGatewayException("LLM returned no review text.", "ai:pr_review:llm:unavailable");
 
             var now = DateTimeOffset.UtcNow;
             var trimmed = reviewText.Trim();

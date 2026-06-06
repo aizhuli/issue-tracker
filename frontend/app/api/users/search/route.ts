@@ -1,14 +1,7 @@
 import { NextRequest } from "next/server";
 import { passthrough, serverFetch } from "@/lib/api-client";
 import { getSession } from "@/lib/session";
-
-const MISSING_SESSION_RESPONSE = {
-  type: "https://tools.ietf.org/html/rfc7807",
-  title: "Unauthorized",
-  status: 401,
-  detail: "No active session.",
-  errorCode: "auth:session:missing",
-};
+import { MISSING_SESSION_RESPONSE } from "@/lib/bff-responses";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();

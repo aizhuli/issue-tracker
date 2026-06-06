@@ -93,6 +93,7 @@ export function IssueDetail({
   const [commentsRefreshKey, setCommentsRefreshKey] = useState(0);
 
   const abortRef = useRef<AbortController | null>(null);
+  const prAbortRef = useRef<AbortController | null>(null);
 
   const canDelete = me.id === issue.reporter.id || me.id === projectOwnerId;
 
@@ -199,6 +200,9 @@ export function IssueDetail({
 
   async function handleReviewPr() {
     if (prReviewing) return;
+    prAbortRef.current?.abort();
+    const controller = new AbortController();
+    prAbortRef.current = controller;
     setPrReviewing(true);
     setPrError("");
     try {
@@ -206,6 +210,7 @@ export function IssueDetail({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pullRequestUrl: prUrl }),
+        signal: controller.signal,
       });
       if (res.ok) {
         setPrFormOpen(false);
@@ -216,7 +221,8 @@ export function IssueDetail({
       }
       const data = await res.json().catch(() => ({}));
       setPrError(data?.detail ?? "Review failed. Please try again.");
-    } catch {
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
       setPrError("Failed to connect to the server.");
     } finally {
       setPrReviewing(false);
