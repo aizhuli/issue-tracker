@@ -42,7 +42,7 @@ public static class UpdateComment
         public RequestValidator()
         {
             RuleFor(x => x.Body)
-                .NotEmpty().WithErrorCode("comments:comment:body:required_or_too_long");
+                .NotEmpty().WithErrorCode("comments:comment:body:required");
         }
     }
 

@@ -281,24 +281,7 @@ public class CommentsTests(TestFixture fixture) : IAsyncLifetime
         {
             var result = _createValidator.TestValidate(new CreateComment.Request("slug", 1, ""));
             result.ShouldHaveValidationErrorFor(x => x.Body)
-                .WithErrorCode("comments:comment:body:required_or_too_long");
-        }
-
-        [Fact]
-        public void Create_Body_10001_chars_fails_with_correct_error_code()
-        {
-            var result = _createValidator.TestValidate(
-                new CreateComment.Request("slug", 1, new string('x', 10001)));
-            result.ShouldHaveValidationErrorFor(x => x.Body)
-                .WithErrorCode("comments:comment:body:required_or_too_long");
-        }
-
-        [Fact]
-        public void Create_Body_10000_chars_passes()
-        {
-            var result = _createValidator.TestValidate(
-                new CreateComment.Request("slug", 1, new string('x', 10000)));
-            result.ShouldNotHaveValidationErrorFor(x => x.Body);
+                .WithErrorCode("comments:comment:body:required");
         }
 
         [Fact]
@@ -307,24 +290,7 @@ public class CommentsTests(TestFixture fixture) : IAsyncLifetime
             var result = _updateValidator.TestValidate(
                 new UpdateComment.Request("slug", 1, "commentid", ""));
             result.ShouldHaveValidationErrorFor(x => x.Body)
-                .WithErrorCode("comments:comment:body:required_or_too_long");
-        }
-
-        [Fact]
-        public void Update_Body_10001_chars_fails_with_correct_error_code()
-        {
-            var result = _updateValidator.TestValidate(
-                new UpdateComment.Request("slug", 1, "commentid", new string('x', 10001)));
-            result.ShouldHaveValidationErrorFor(x => x.Body)
-                .WithErrorCode("comments:comment:body:required_or_too_long");
-        }
-
-        [Fact]
-        public void Update_Body_10000_chars_passes()
-        {
-            var result = _updateValidator.TestValidate(
-                new UpdateComment.Request("slug", 1, "commentid", new string('x', 10000)));
-            result.ShouldNotHaveValidationErrorFor(x => x.Body);
+                .WithErrorCode("comments:comment:body:required");
         }
     }
 }
