@@ -44,8 +44,8 @@ public static class CreateComment
         public RequestValidator()
         {
             RuleFor(x => x.Body)
-                .NotEmpty().WithErrorCode("comments:comment:body:required_or_too_long")
-                .MaximumLength(10000).WithErrorCode("comments:comment:body:required_or_too_long");
+                .NotEmpty().WithErrorCode("comments:comment:body:required")
+                .MaximumLength(10_000).WithErrorCode("comments:comment:body:required");
         }
     }
 
@@ -91,7 +91,8 @@ public static class CreateComment
                 comment.Body,
                 comment.CreatedAt,
                 comment.UpdatedAt,
-                false);
+                false,
+                comment.AuthorId == SystemUsers.AiUserId);
         }
     }
 }

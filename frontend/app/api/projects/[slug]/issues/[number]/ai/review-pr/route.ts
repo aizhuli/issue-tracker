@@ -3,7 +3,7 @@ import { passthrough, serverFetch } from "@/lib/api-client";
 import { getSession } from "@/lib/session";
 import { MISSING_SESSION_RESPONSE } from "@/lib/bff-responses";
 
-export async function PATCH(
+export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string; number: string }> },
 ) {
@@ -19,9 +19,9 @@ export async function PATCH(
   const body = await request.text();
 
   const upstream = await serverFetch(
-    `/api/projects/${slug}/issues/${number}/assignee`,
+    `/api/projects/${slug}/issues/${number}/ai/review-pr`,
     {
-      method: "PATCH",
+      method: "POST",
       body,
       user: session.user,
     },

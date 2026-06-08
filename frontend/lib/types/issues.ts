@@ -54,6 +54,7 @@ export type CommentDto = {
   createdAt: string;
   updatedAt: string;
   edited: boolean;
+  isAiGenerated: boolean;
 };
 
 export type LabelFullDto = {

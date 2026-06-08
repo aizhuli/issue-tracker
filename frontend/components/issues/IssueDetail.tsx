@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Avatar } from "@/components/ui/Avatar";
@@ -86,7 +87,15 @@ export function IssueDetail({
   const [aiSuggesting, setAiSuggesting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  const [prFormOpen, setPrFormOpen] = useState(false);
+  const [prUrl, setPrUrl] = useState("");
+  const [prReviewing, setPrReviewing] = useState(false);
+  const [prError, setPrError] = useState("");
+  const [commentsRefreshKey, setCommentsRefreshKey] = useState(0);
+
+  const router = useRouter();
   const abortRef = useRef<AbortController | null>(null);
+  const prAbortRef = useRef<AbortController | null>(null);
 
   const canDelete = me.id === issue.reporter.id || me.id === projectOwnerId;
 
@@ -188,6 +197,41 @@ export function IssueDetail({
       setFieldErrors({ _form: "Failed to connect to the server." });
     } finally {
       setAiSuggesting(false);
+    }
+  }
+
+  async function handleReviewPr() {
+    if (prReviewing) return;
+    prAbortRef.current?.abort();
+    const controller = new AbortController();
+    prAbortRef.current = controller;
+    setPrReviewing(true);
+    setPrError("");
+    try {
+      const res = await fetch(`/api/projects/${projectSlug}/issues/${issue.number}/ai/review-pr`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pullRequestUrl: prUrl }),
+        signal: controller.signal,
+      });
+      if (res.ok) {
+        setPrFormOpen(false);
+        setPrUrl("");
+        setPrError("");
+        if (openInPageUrl) {
+          router.push(openInPageUrl);
+        } else {
+          setCommentsRefreshKey((k) => k + 1);
+        }
+        return;
+      }
+      const data = await res.json().catch(() => ({}));
+      setPrError(data?.detail ?? "Review failed. Please try again.");
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      setPrError("Failed to connect to the server.");
+    } finally {
+      setPrReviewing(false);
     }
   }
 
@@ -725,6 +769,9 @@ export function IssueDetail({
                 projectSlug={projectSlug}
                 issueNumber={issue.number}
                 me={me}
+                refreshKey={commentsRefreshKey}
+                hideAiComments={!!openInPageUrl}
+                fullPageUrl={openInPageUrl}
               />
             </div>
           </div>
@@ -769,6 +816,118 @@ export function IssueDetail({
               >
                 Edit
               </button>
+              <button
+                type="button"
+                onClick={() => { setPrFormOpen((o) => !o); setPrError(""); }}
+                style={{
+                  width: "100%",
+                  padding: "7px 12px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  background: "var(--surface-2)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius-sm)",
+                  color: "var(--ink-1)",
+                  cursor: "pointer",
+                  textAlign: "center",
+                  transition: "background 80ms ease, border-color 80ms ease",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-3)";
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-3)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-2)";
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
+                }}
+              >
+                Review PR
+              </button>
+              {prFormOpen && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <input
+                    type="url"
+                    value={prUrl}
+                    onChange={(e) => setPrUrl(e.target.value)}
+                    disabled={prReviewing}
+                    placeholder="https://github.com/owner/repo/pull/1"
+                    style={{
+                      width: "100%",
+                      padding: "7px 10px",
+                      border: `1px solid ${prError ? "#B94D2F" : "var(--border-3)"}`,
+                      borderRadius: "var(--radius-sm)",
+                      background: "var(--surface)",
+                      fontSize: 12.5,
+                      color: "var(--ink-0)",
+                      outline: "none",
+                      boxSizing: "border-box",
+                    }}
+                  />
+                  {prError && (
+                    <span style={{ fontSize: 11.5, color: "#B94D2F" }}>{prError}</span>
+                  )}
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      type="button"
+                      onClick={handleReviewPr}
+                      disabled={prReviewing || !prUrl.trim()}
+                      style={{
+                        flex: 1,
+                        padding: "6px 10px",
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        background: prReviewing || !prUrl.trim() ? "var(--surface-3)" : "var(--accent-1)",
+                        color: prReviewing || !prUrl.trim() ? "var(--ink-3)" : "var(--accent-1-ink)",
+                        border: "none",
+                        borderRadius: "var(--radius-sm)",
+                        cursor: prReviewing || !prUrl.trim() ? "not-allowed" : "pointer",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 5,
+                        transition: "background 80ms ease",
+                      }}
+                    >
+                      {prReviewing ? (
+                        <>
+                          <span
+                            aria-hidden="true"
+                            style={{
+                              display: "inline-block",
+                              width: 11,
+                              height: 11,
+                              border: "2px solid var(--border-3)",
+                              borderTopColor: "var(--ink-2)",
+                              borderRadius: "50%",
+                              animation: "spin 0.7s linear infinite",
+                            }}
+                          />
+                          Reviewing…
+                        </>
+                      ) : (
+                        "Run review"
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setPrFormOpen(false); setPrUrl(""); setPrError(""); }}
+                      disabled={prReviewing}
+                      style={{
+                        padding: "6px 10px",
+                        fontSize: 12.5,
+                        fontWeight: 500,
+                        background: "transparent",
+                        border: "1px solid var(--border-3)",
+                        borderRadius: "var(--radius-sm)",
+                        color: "var(--ink-2)",
+                        cursor: prReviewing ? "not-allowed" : "pointer",
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
