@@ -243,7 +243,7 @@ function CommentItem({
           </div>
         ) : (
           <div
-            className="comment__body"
+            className="comment__body markdown-body"
             style={{ fontSize: 13.5, color: "var(--ink-1)" }}
           >
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{comment.body}</ReactMarkdown>
