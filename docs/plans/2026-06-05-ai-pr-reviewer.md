@@ -152,3 +152,53 @@ Findings from post-implementation review of the feature branch. Ranked most-seve
 
 - [x] **`MISSING_SESSION_RESPONSE` copy-pasted across all BFF route files** (`review-pr/route.ts:5`)
   The object literal is duplicated in every route instead of being imported from a shared module. Fix: export it from `frontend/lib/bff-responses.ts` and import in each route.
+
+---
+
+## Phase 4 — Remove Body Cap + Expose `IsAiGenerated`
+
+*No dependency on prior phases. Task 4.1 and 4.2 touch different files and can run in parallel.*
+
+### Task 4.1: Remove Comment Body Length Cap + Add `IsAiGenerated` to `CommentDto`
+
+- [x] In `AppDbContext.cs`, remove `.HasMaxLength(10_000)` from `Comment.Body` — the column becomes an unbounded `TEXT`
+- [x] In `CreateComment.cs` `RequestValidator`, remove the `.MaximumLength(10000)` rule from the `Body` field
+- [x] In `ReviewPullRequest.cs`, remove the truncation line `var body = trimmed[..Math.Min(10_000, trimmed.Length)];` — replace `body` with `trimmed` directly when constructing the `Comment`
+- [x] In `ListComments.cs`, add `bool IsAiGenerated` to the `CommentDto` record; set it to `c.AuthorId == SystemUsers.AiUserId` in the `.Select` projection
+- [x] Run `dotnet ef migrations add RemoveCommentBodyLengthLimit --project backend/src/AiIssueTracker.Api --startup-project backend/src/AiIssueTracker.Api`
+- [x] Verify the generated migration's `Up` alters the column to remove the length constraint and `Down` restores it
+
+**Files:** `backend/src/AiIssueTracker.Api/Data/AppDbContext.cs`, `backend/src/AiIssueTracker.Api/Features/Comments/CreateComment.cs`, `backend/src/AiIssueTracker.Api/Features/Ai/ReviewPullRequest.cs`, `backend/src/AiIssueTracker.Api/Features/Comments/ListComments.cs`, generated migration file
+
+---
+
+### Task 4.2: Add `isAiGenerated` to Frontend `CommentDto` Type
+
+- [x] In `frontend/lib/types/issues.ts`, add `isAiGenerated: boolean` to the `CommentDto` type
+
+**Files:** `frontend/lib/types/issues.ts`
+
+---
+
+## Phase 5 — Markdown Rendering + Modal UX
+
+*Depends on Phase 4 (type shape must be stable before UI tasks begin). Tasks 5.1 and 5.2 touch different files and can run in parallel.*
+
+### Task 5.1: Markdown Rendering + AI Comment Styling + `hideAiComments` Prop
+
+- [x] In `CommentsSection.tsx`, add `hideAiComments?: boolean` and `fullPageUrl?: string` to `CommentsSectionProps`
+- [x] In `CommentsSection.tsx`, replace the raw `{comment.body}` render with `<ReactMarkdown remarkPlugins={[remarkGfm]}>{comment.body}</ReactMarkdown>` — import `ReactMarkdown` and `remarkGfm` (already installed as a dependency of `IssueDetail`)
+- [x] In `CommentsSection.tsx`, when `comment.isAiGenerated`, render the comment with a distinct left border (e.g. `borderLeft: "3px solid var(--accent-1-strong)"`) and a small `"AI"` badge next to the author name in the `comment__meta` row
+- [x] In `CommentsSection.tsx`, when `hideAiComments` is true, filter AI comments out of the rendered list before displaying
+- [x] In `CommentsSection.tsx`, when `hideAiComments` is true and at least one AI comment was filtered, render a muted indicator below the human comment list: `"AI review available"` as a link to `fullPageUrl`
+
+**Files:** `frontend/components/issues/CommentsSection.tsx`
+
+---
+
+### Task 5.2: `IssueDetail` — Pass Modal Flags + Navigate After Review
+
+- [x] In `IssueDetail.tsx`, update the `<CommentsSection ... />` call to pass `hideAiComments={!!openInPageUrl}` and `fullPageUrl={openInPageUrl}`
+- [x] In `IssueDetail.tsx`, in `handleReviewPr` on success, if `openInPageUrl` is set, call `router.push(openInPageUrl)` instead of incrementing `commentsRefreshKey` — the full page will load with the new review visible
+
+**Files:** `frontend/components/issues/IssueDetail.tsx`
