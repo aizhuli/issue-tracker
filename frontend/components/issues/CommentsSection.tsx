@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, KeyboardEvent } from "react";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Avatar } from "@/components/ui/Avatar";
@@ -382,18 +383,18 @@ export function CommentsSection({ projectSlug, issueNumber, me, refreshKey, hide
           ))}
           {hideAiComments && fullPageUrl && aiCommentCount > 0 && (
             <p style={{ fontSize: 12, color: "var(--ink-3)", margin: "6px 0 0 0" }}>
-              <a
-                href={fullPageUrl}
+              <Link
+                href={fullPageUrl ?? ""}
                 style={{ color: "var(--ink-3)", textDecoration: "underline" }}
               >
                 AI review available
-              </a>
+              </Link>
             </p>
           )}
         </div>
       )}
 
-      {nextPageToken && (
+      {visibleComments.length > 0 && nextPageToken && (
         <div style={{ padding: "10px 0" }}>
           <button
             className="btn btn--ghost"

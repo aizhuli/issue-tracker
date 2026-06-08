@@ -42,7 +42,8 @@ public static class UpdateComment
         public RequestValidator()
         {
             RuleFor(x => x.Body)
-                .NotEmpty().WithErrorCode("comments:comment:body:required");
+                .NotEmpty().WithErrorCode("comments:comment:body:required")
+                .MaximumLength(10_000).WithErrorCode("comments:comment:body:required");
         }
     }
 

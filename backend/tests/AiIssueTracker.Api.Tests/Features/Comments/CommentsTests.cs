@@ -285,10 +285,29 @@ public class CommentsTests(TestFixture fixture) : IAsyncLifetime
         }
 
         [Fact]
+        public void Create_Body_tooLong_fails_with_correct_error_code()
+        {
+            var longBody = new string('x', 10_001);
+            var result = _createValidator.TestValidate(new CreateComment.Request("slug", 1, longBody));
+            result.ShouldHaveValidationErrorFor(x => x.Body)
+                .WithErrorCode("comments:comment:body:required");
+        }
+
+        [Fact]
         public void Update_Body_empty_fails_with_correct_error_code()
         {
             var result = _updateValidator.TestValidate(
                 new UpdateComment.Request("slug", 1, "commentid", ""));
+            result.ShouldHaveValidationErrorFor(x => x.Body)
+                .WithErrorCode("comments:comment:body:required");
+        }
+
+        [Fact]
+        public void Update_Body_tooLong_fails_with_correct_error_code()
+        {
+            var longBody = new string('x', 10_001);
+            var result = _updateValidator.TestValidate(
+                new UpdateComment.Request("slug", 1, "commentid", longBody));
             result.ShouldHaveValidationErrorFor(x => x.Body)
                 .WithErrorCode("comments:comment:body:required");
         }
