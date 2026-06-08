@@ -79,7 +79,8 @@ public static class UpdateComment
                 comment.Body,
                 comment.CreatedAt,
                 comment.UpdatedAt,
-                comment.UpdatedAt > comment.CreatedAt.AddSeconds(1));
+                comment.UpdatedAt > comment.CreatedAt.AddSeconds(1),
+                comment.AuthorId == SystemUsers.AiUserId);
         }
     }
 }

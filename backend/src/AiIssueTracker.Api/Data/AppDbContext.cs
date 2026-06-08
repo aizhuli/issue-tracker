@@ -170,8 +170,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             b.Property(x => x.Id).ValueGeneratedNever();
 
             b.Property(x => x.Body)
-                .IsRequired()
-                .HasMaxLength(10_000);
+                .IsRequired();
 
             b.HasOne(c => c.Issue)
                 .WithMany(i => i.Comments)

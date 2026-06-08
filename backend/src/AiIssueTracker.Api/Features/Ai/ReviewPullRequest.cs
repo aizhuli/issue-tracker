@@ -140,14 +140,13 @@ public static class ReviewPullRequest
 
             var now = DateTimeOffset.UtcNow;
             var trimmed = reviewText.Trim();
-            var body = trimmed[..Math.Min(10_000, trimmed.Length)];
 
             var comment = new Comment
             {
                 Id = idFactory.Create(),
                 IssueId = issue.Id,
                 AuthorId = SystemUsers.AiUserId,
-                Body = body,
+                Body = trimmed,
                 CreatedAt = now,
                 UpdatedAt = now,
             };

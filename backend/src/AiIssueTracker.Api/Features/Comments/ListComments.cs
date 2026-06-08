@@ -17,7 +17,8 @@ public record CommentDto(
     string Body,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    bool Edited);
+    bool Edited,
+    bool IsAiGenerated);
 
 public static class ListComments
 {
@@ -87,7 +88,8 @@ public static class ListComments
                     c.Body,
                     c.CreatedAt,
                     c.UpdatedAt,
-                    c.UpdatedAt > c.CreatedAt.AddSeconds(1)))
+                    c.UpdatedAt > c.CreatedAt.AddSeconds(1),
+                    c.AuthorId == SystemUsers.AiUserId))
                 .ToListAsync(ct);
 
             var nextToken = paging.CreateNextPageToken(
