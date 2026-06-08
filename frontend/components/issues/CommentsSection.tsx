@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, KeyboardEvent } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Avatar } from "@/components/ui/Avatar";
 import type { CommentDto } from "@/lib/types/issues";
 
@@ -103,11 +105,34 @@ function CommentItem({
   }
 
   return (
-    <div className="comment">
+    <div
+      className="comment"
+      style={
+        comment.isAiGenerated
+          ? { borderLeft: "3px solid var(--accent-1-strong)", paddingLeft: 10 }
+          : undefined
+      }
+    >
       <Avatar id={comment.authorId} name={comment.authorName} size={28} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="comment__meta">
           <span className="comment__author">{comment.authorName}</span>
+          {comment.isAiGenerated && (
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: "var(--accent-1-strong)",
+                background: "color-mix(in srgb, var(--accent-1-strong) 15%, transparent)",
+                borderRadius: 3,
+                padding: "1px 5px",
+                marginLeft: 4,
+                letterSpacing: "0.04em",
+              }}
+            >
+              AI
+            </span>
+          )}
           <span className="comment__time">{formatRelative(comment.createdAt)}</span>
           {comment.edited && <span className="comment__edited">(edited)</span>}
           {isOwn && (
@@ -219,9 +244,9 @@ function CommentItem({
         ) : (
           <div
             className="comment__body"
-            style={{ whiteSpace: "pre-wrap", fontSize: 13.5, color: "var(--ink-1)" }}
+            style={{ fontSize: 13.5, color: "var(--ink-1)" }}
           >
-            {comment.body}
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{comment.body}</ReactMarkdown>
           </div>
         )}
       </div>
@@ -234,9 +259,11 @@ interface CommentsSectionProps {
   issueNumber: number;
   me: { id: string; name: string; avatarUrl?: string | null };
   refreshKey?: number;
+  hideAiComments?: boolean;
+  fullPageUrl?: string;
 }
 
-export function CommentsSection({ projectSlug, issueNumber, me, refreshKey }: CommentsSectionProps) {
+export function CommentsSection({ projectSlug, issueNumber, me, refreshKey, hideAiComments, fullPageUrl }: CommentsSectionProps) {
   const [comments, setComments] = useState<CommentDto[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -327,15 +354,22 @@ export function CommentsSection({ projectSlug, issueNumber, me, refreshKey }: Co
     setComments((prev) => prev.filter((c) => c.id !== id));
   }
 
+  const visibleComments = hideAiComments
+    ? comments.filter((c) => !c.isAiGenerated)
+    : comments;
+  const aiCommentCount = hideAiComments
+    ? comments.filter((c) => c.isAiGenerated).length
+    : 0;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       {loading ? (
         <p style={{ fontSize: 13, color: "var(--ink-3)", padding: "8px 0" }}>Loading comments…</p>
-      ) : comments.length === 0 ? (
+      ) : visibleComments.length === 0 && aiCommentCount === 0 ? (
         <p style={{ fontSize: 13, color: "var(--ink-3)", padding: "8px 0" }}>No comments yet.</p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column" }}>
-          {comments.map((comment) => (
+          {visibleComments.map((comment) => (
             <CommentItem
               key={comment.id}
               comment={comment}
@@ -346,6 +380,16 @@ export function CommentsSection({ projectSlug, issueNumber, me, refreshKey }: Co
               onDeleted={handleCommentDeleted}
             />
           ))}
+          {hideAiComments && fullPageUrl && aiCommentCount > 0 && (
+            <p style={{ fontSize: 12, color: "var(--ink-3)", margin: "6px 0 0 0" }}>
+              <a
+                href={fullPageUrl}
+                style={{ color: "var(--ink-3)", textDecoration: "underline" }}
+              >
+                AI review available
+              </a>
+            </p>
+          )}
         </div>
       )}
 
