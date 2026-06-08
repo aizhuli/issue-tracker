@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Avatar } from "@/components/ui/Avatar";
@@ -92,6 +93,7 @@ export function IssueDetail({
   const [prError, setPrError] = useState("");
   const [commentsRefreshKey, setCommentsRefreshKey] = useState(0);
 
+  const router = useRouter();
   const abortRef = useRef<AbortController | null>(null);
   const prAbortRef = useRef<AbortController | null>(null);
 
@@ -216,7 +218,11 @@ export function IssueDetail({
         setPrFormOpen(false);
         setPrUrl("");
         setPrError("");
-        setCommentsRefreshKey((k) => k + 1);
+        if (openInPageUrl) {
+          router.push(openInPageUrl);
+        } else {
+          setCommentsRefreshKey((k) => k + 1);
+        }
         return;
       }
       const data = await res.json().catch(() => ({}));
@@ -764,6 +770,8 @@ export function IssueDetail({
                 issueNumber={issue.number}
                 me={me}
                 refreshKey={commentsRefreshKey}
+                hideAiComments={!!openInPageUrl}
+                fullPageUrl={openInPageUrl}
               />
             </div>
           </div>
